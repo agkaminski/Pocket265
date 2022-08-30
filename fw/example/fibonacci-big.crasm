@@ -1,0 +1,51 @@
+CPU 6502
+OUTPUT HEX
+INCLUDE lib.crasm
+
+; equ constants here
+
+DUMMY
+* = 0
+
+; Zero page variables here
+
+curr            ds 8
+prev            ds 8
+
+CODE
+* = 0x200
+
+; User code here
+                LDA #0
+                LDX #7
+init_l0         STA curr, X
+                STA prev, X
+                DEX
+                BPL init_l0
+                INC curr + 7
+
+loop            LDX #7
+                CLC
+add             LDA curr, X
+                PHA
+                svc_putch
+                ADC prev, X
+                CMP #10
+                BMI ncarry
+                SEC
+                SBC #10
+ncarry          STA curr, X
+                PLA
+                STA prev, X
+                DEX
+                BPL add
+
+                PHP
+
+                svc_get_key
+
+                PLP
+                BCC loop
+
+                RTS
+

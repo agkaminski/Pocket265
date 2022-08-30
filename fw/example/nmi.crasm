@@ -1,0 +1,45 @@
+CPU 6502
+OUTPUT HEX
+INCLUDE lib.crasm
+
+; equ constants here
+
+DUMMY
+* = 0
+
+; Zero page variables here
+num             ds 2
+
+CODE
+* = 0x200
+
+; User code here
+                PLA
+                SEC
+                SBC #1
+                PHA
+                STA 0
+                RTS
+
+                LDA #0
+                STA num
+                STA num + 1
+                STA num + 2
+                LDX #nmi_handler & 0xFF
+                LDY #nmi_handler >> 8
+                svc_nmi_register
+                LDA num + 1
+loop            CMP num + 1
+                BEQ loop
+                LDX num
+                LDY num + 1
+                PHA
+                svc_printd_u16
+                PLA
+                JMP loop
+
+
+nmi_handler     INC num
+                BNE nmi_handler_e
+                INC num + 1
+nmi_handler_e   RTS

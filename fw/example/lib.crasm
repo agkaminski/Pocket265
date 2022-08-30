@@ -1,0 +1,88 @@
+_SYSCALL MACRO
+                JSR 0xF800 + 4 * \1
+ENDM
+
+svc_reset MACRO
+                _SYSCALL 0
+ENDM
+
+svc_irq_register MACRO
+                _SYSCALL 1
+ENDM
+
+svc_nmi_register MACRO
+                _SYSCALL 2
+ENDM
+
+svc_get_screen_ptr MACRO
+                _SYSCALL 3
+ENDM
+
+svc_putch MACRO
+                _SYSCALL 4
+ENDM
+
+svc_putbyte MACRO
+                _SYSCALL 5
+ENDM
+
+svc_dot_enable MACRO
+                _SYSCALL 6
+ENDM
+
+svc_dot_disable MACRO
+                _SYSCALL 7
+ENDM
+
+svc_clear_screen MACRO
+                _SYSCALL 8
+ENDM
+
+svc_printx_u16 MACRO
+                _SYSCALL 9
+ENDM
+
+svc_printd_u16 MACRO
+                _SYSCALL 10
+ENDM
+
+svc_printd_s16 MACRO
+                _SYSCALL 11
+ENDM
+
+svc_prints MACRO
+                _SYSCALL 12
+ENDM
+
+svc_scanx_u16 MACRO
+                _SYSCALL 13
+ENDM
+
+svc_scand_u16 MACRO
+                _SYSCALL 14
+ENDM
+
+svc_get_key MACRO
+                _SYSCALL 15
+ENDM
+
+svc_get_key_nb MACRO
+                _SYSCALL 16
+ENDM
+
+svc_get_jiffies MACRO
+                _SYSCALL 17
+ENDM
+
+svc_get_seconds MACRO
+                _SYSCALL 18
+ENDM
+
+svc_msleep MACRO
+                _SYSCALL 19
+ENDM
+
+svc_sleep MACRO
+                _SYSCALL 20
+ENDM
+

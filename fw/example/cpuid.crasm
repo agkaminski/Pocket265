@@ -1,0 +1,52 @@
+CPU 6502
+OUTPUT HEX
+INCLUDE lib.crasm
+
+; equ constants here
+
+DUMMY
+* = 0
+
+; Zero page variables here
+
+
+CODE
+* = 0x200
+
+; User code here
+
+                SED
+                LDA #0x99
+                CLC
+                ADC #1
+                BMI det6502
+
+                CLC
+                db 0xFB
+                BCC det65c02
+                db 0xFB
+
+                LDX #str65c816 & 0xFF
+                LDY #str65c816 >> 8
+                LDA #2
+                svc_prints
+                JMP end
+
+det6502         LDX #str6502 & 0xFF
+                LDY #str6502 >> 8
+                LDA #4
+                svc_prints
+                JMP end
+
+det65c02        LDX #str65c02 & 0xFF
+                LDY #str65c02 >> 8
+                LDA #3
+                svc_prints
+
+end             CLD
+                svc_get_key
+                RTS
+
+str6502         db 0x7D, 0x6D, 0x3F, 0x5B, 0
+str65c02        db 0x7D, 0x6D, 0x39, 0x3F, 0x5B, 0
+str65c816       db 0x7D, 0x6D, 0x39, 0x7F, 0x06, 0x7D, 0

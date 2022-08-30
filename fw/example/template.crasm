@@ -1,0 +1,18 @@
+CPU 6502
+OUTPUT HEX
+INCLUDE lib.crasm
+
+; equ constants here
+
+DUMMY
+* = 0
+
+; Zero page variables here
+
+
+CODE
+* = 0x200
+
+; User code here
+
+

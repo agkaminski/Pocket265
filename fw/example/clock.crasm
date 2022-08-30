@@ -1,0 +1,141 @@
+CPU 6502
+OUTPUT HEX
+INCLUDE lib.crasm
+
+; equ constants here
+
+KEY_INC  equ 16
+KEY_DEC  equ 17
+KEY_SEL  equ 18
+KEY_GO   equ 19
+KEY_F1   equ 20
+KEY_F2   equ 21
+KEY_F3   equ 22
+KEY_F4   equ 23
+KEY_NONE equ 24
+
+DUMMY
+* = 0
+
+; Zero page variables here
+subseconds      ds 2
+second_trigger  ds 1
+
+seconds         ds 2
+minutes         ds 2
+hours           ds 2
+
+prevkey         ds 1
+screenptr       ds 2
+
+
+CODE
+* = 0x200
+
+; User code here
+clock           LDA #0
+                LDX #hours
+init_loop       STA 0, X
+                DEX
+                BNE init_loop
+
+                INC hours
+                INC hours + 1
+                INC hours + 1
+
+                svc_get_screen_ptr
+                STX screenptr
+                STY screenptr + 1
+
+                LDA #0x40 ; '-'
+                LDY #2
+                STA (screenptr), Y
+                LDY #5
+                STA (screenptr), Y
+
+                LDX #nmi_handler & 0xFF
+                LDY #nmi_handler >> 8
+                svc_nmi_register
+
+screen_draw     LDX #0
+                LDA hours + 1
+                JSR putch
+                LDA hours
+                JSR putch
+                INX
+                LDA minutes + 1
+                JSR putch
+                LDA minutes
+                JSR putch
+                INX
+                LDA seconds + 1
+                JSR putch
+                LDA seconds
+                svc_putch
+
+loop            LDA second_trigger
+                BNE seconds_inc
+                svc_get_key_nb
+                LDX #0
+                CMP prevkey
+                BEQ loop
+                STA prevkey
+                CMP #KEY_INC
+                BEQ hours_inc
+                CMP #KEY_DEC
+                BEQ minutes_inc
+                BNE loop
+
+seconds_inc     LDA #0
+                LDX #0
+                STA second_trigger
+                INC seconds
+                LDA seconds
+                CMP #10
+                BCC screen_draw
+                STX seconds
+                INC seconds + 1
+                LDA seconds + 1
+                CMP #6
+                BCC screen_draw
+                STX seconds + 1
+minutes_inc     INC minutes
+                LDA minutes
+                CMP #10
+                BCC screen_draw
+                STX minutes
+                INC minutes + 1
+                LDA minutes + 1
+                CMP #6
+                BCC screen_draw
+                STX minutes + 1
+hours_inc       INC hours
+                LDA hours + 1
+                CMP #2
+                BCC hours_early
+                LDA hours
+                CMP #4
+                BCC screen_draw
+                STX hours
+                STX hours + 1
+                BEQ hours_end
+hours_early     LDA hours
+                CMP #10
+                BCC hours_end
+                STX hours
+                INC hours + 1
+hours_end       JMP screen_draw
+
+putch           svc_putch
+                INX
+                RTS
+
+nmi_handler     INC subseconds
+                BNE nmi_handler_e
+                DEC subseconds + 1
+                BPL nmi_handler_e
+                LDA #3
+                STA second_trigger
+                STA subseconds + 1
+nmi_handler_e   RTS
+

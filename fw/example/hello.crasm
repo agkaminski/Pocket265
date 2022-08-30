@@ -1,0 +1,32 @@
+CPU 6502
+OUTPUT HEX
+INCLUDE lib.crasm
+
+; equ constants here
+
+DUMMY
+* = 0
+
+; Zero page variables here
+
+screen_ptr      ds 2
+
+CODE
+* = 0x200
+
+; User code here
+
+                svc_get_screen_ptr
+                STX screen_ptr
+                STY screen_ptr + 1
+                LDY #0
+loop            LDA hello_str, Y
+                BEQ end
+                STA (screen_ptr), Y
+                INY
+                BNE loop
+end             svc_get_key
+                RTS
+
+hello_str       db 0x76, 0x79, 0x38, 0x38, 0x3F, 0x00
+
