@@ -3,7 +3,7 @@ GOAL = fw
 CPU = 6502
 TARGET = $(addsuffix .bin, ${GOAL})
 GHASH = `git describe --always --dirty`
-OBJ = main.o
+OBJ = main.o dl1414.o
 
 .PHONY: clean
 MAKEFLAGS += --no-builtin-rules
