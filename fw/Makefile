@@ -6,7 +6,7 @@ GHASH = `git describe --always --dirty`
 OBJ = main.o
 
 .PHONY: clean
-.SUFFIXES:
+MAKEFLAGS += --no-builtin-rules
 
 all: ${TARGET}
 
