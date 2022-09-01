@@ -20,19 +20,18 @@ unsigned char timer_get_seconds(void)
 
 void timer_wait_ms(unsigned char ms)
 {
-	unsigned char start = jiffies, curr;
+	unsigned char start = timer_get_jiffies(), curr;
 
 	do {
-		curr = jiffies;
+		curr = timer_get_jiffies();
 	} while (curr - start < ms);
 }
 
 void timer_wait_sec(unsigned char sec)
 {
-	unsigned char start = seconds, curr;
+	int i;
 
-	do {
-		curr = seconds;
-	} while (curr - start < sec);
+	for (i = 0; i < (sec << 3); ++i)
+		timer_wait_ms(128);
 }
 
