@@ -13,7 +13,7 @@ int dl1414_puts(const char *str)
 	static int pos = 0;
 	volatile unsigned char *ptr = (void *)SCREEN_BASE;
 	static char buff[SCREEN_LENGTH];
-	char i, c;
+	char i, j, c;
 
 	for (i = 0; str[i] != '\0'; ++i) {
 		if (str[i] == '\n' || str[i] == '\r') {
@@ -30,10 +30,15 @@ int dl1414_puts(const char *str)
 		if (isalpha(c))
 			c = toupper(c);
 
-		buff[pos] = c;
+		if (pos >= SCREEN_LENGTH) {
+			for (j = 1; j < SCREEN_LENGTH; ++j)
+				buff[j - 1] = buff[j];
 
-		if (++pos >= SCREEN_LENGTH)
-			pos = SCREEN_LENGTH - 1;
+			buff[SCREEN_LENGTH - 1] = c;
+		}
+		else {
+			buff[pos++] = c;
+		}
 	}
 
 	for (i = 0; i < sizeof(buff); ++i)
