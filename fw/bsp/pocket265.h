@@ -6,6 +6,8 @@
 #define POCKET265_H_
 
 /* I/O map */
+#define USR_MEM_START  0x1000
+
 #define KEYBOARD_BASE  0xC000
 #define SCREEN_BASE    0xC400
 #define NMI_CLEAR_BASE 0xC800
