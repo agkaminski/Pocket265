@@ -2,15 +2,34 @@
  * A.K. 2022
  */
 
+#include <stdint.h>
+#include <stdio.h>
+#include <pocket265.h>
+
 #include "interrupt.h"
 #include "monitor.h"
 #include "dl1414.h"
 #include "timer.h"
+#include "memtest.h"
+
+uint16_t user_memsz;
 
 int main(void)
 {
 	/* Kickstart NMI */
 	nmi_clr();
+
+	dl1414_puts("\nPocket265   ");
+	timer_wait_sec(1);
+
+	/* memory test provide big enough delay... */
+	user_memsz = USR_MEM_START;
+	memory_test(&user_memsz);
+	user_memsz -= USR_MEM_START;
+
+	sprintf(buff, "\n%5d B free", user_memsz);
+	dl1414_puts(buff);
+	timer_wait_sec(1);
 
 	monitor_run();
 
