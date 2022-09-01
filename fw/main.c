@@ -16,11 +16,22 @@ uint16_t user_memsz;
 
 int main(void)
 {
+	static const char copyright[] = "version " VERSION " A.K.    2022";
+	char buff[SCREEN_LENGTH + 2];
+	unsigned char i;
+
 	/* Kickstart NMI */
 	nmi_clr();
 
 	dl1414_puts("\nPocket265   ");
 	timer_wait_sec(1);
+
+	buff[1] = '\0';
+	for (i = 0; i < sizeof(copyright) - 1; ++i) {
+		buff[0] = copyright[i];
+		dl1414_puts(buff);
+		timer_wait_ms(200);
+	}
 
 	/* memory test provide big enough delay... */
 	user_memsz = USR_MEM_START;
