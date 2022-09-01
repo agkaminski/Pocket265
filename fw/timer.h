@@ -5,8 +5,6 @@
 #ifndef TIMER_H_
 #define TIMER_H_
 
-void timer_update(void);
-
 unsigned char timer_get_jiffies(void);
 
 unsigned char timer_get_seconds(void);

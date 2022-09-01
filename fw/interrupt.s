@@ -1,5 +1,5 @@
-; Pocket265 cc65 interrupts
-; based on the guide: https://cc65.github.io/doc/customizing.html
+; Pocket265 interrupts
+; Some code based on the guide: https://cc65.github.io/doc/customizing.html
 ; A.K. 2022
 
 ; ---------------------------------------------------------------------------
