@@ -3,3 +3,6 @@
 *.txt
 *.hex
 *.log
+*.asm
+*.map
+

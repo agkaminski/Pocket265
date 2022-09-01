@@ -1,31 +1,29 @@
 #include <stdio.h>
 
 #include "dl1414.h"
-
-extern void _isr_irq(void)
-{
-}
-
-
-extern void _isr_nmi(void)
-{
-}
-
-
-extern void _isr_break(void)
-{
-}
-
+#include "keyboard.h"
+#include "interrupt.h"
 
 int main(void)
 {
 	char str[16];
+	unsigned char key;
+	static const char *keys[] = { "INC", "DEC", "SEL", "GO", "F1", "F2", "F3", "F4" };
 
-	sprintf(str, "POCKET265");
+	dl1414_puts("\nPOCKET265");
 
-	dl1414_puts(str);
+	nmi_clr();
 
-	while (1);
+	while (1) {
+		key = keyboard_get();
+
+		if (key <= 15)
+			sprintf(str, "\nKey: 0x%x", key);
+		else
+			sprintf(str, "\nKey: %s", keys[key - 16]);
+
+		dl1414_puts(str);
+	}
 
 	return 0;
 }
