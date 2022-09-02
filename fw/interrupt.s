@@ -89,6 +89,11 @@ _nmi_int:       PHA
                 PHA
                 CLD
 
+                TSX
+                LDA $0104, X
+                AND #$10
+                BNE _break
+
                 JSR scan_keyb
                 JSR handle_timer
                 JSR _nmi_clr
@@ -110,6 +115,11 @@ _irq_int:       PHA
                 PHA
                 CLD
 
+                TSX
+                LDA $0104, X
+                AND #$10
+                BNE _break
+
                 ; TODO
 
                 PLA
@@ -120,10 +130,42 @@ _irq_int:       PHA
                 RTI
 
 ; ---------------------------------------------------------------------------
-; BRK detected, stop
+; BRK
 
-_break:         JMP _break             ; If BRK is detected, something very bad
-                                       ;   has happened, so stop running
+.import _g_brk_param, _brk_handle
+
+.proc _break: near
+
+.segment "ZEROPAGE"
+
+@indirect: .res	2,$00
+
+.segment "CODE"
+
+                LDA $0105, X
+                SEC
+                SBC #1
+                STA @indirect
+                LDA $0106, X
+                SBC #0
+                STA @indirect + 1
+                LDY #0
+                LDA (@indirect), Y
+                STA _g_brk_param + 3
+                PLA
+                STA _g_brk_param + 2
+                PLA
+                STA _g_brk_param + 1
+                PLA
+                STA _g_brk_param
+
+                JSR _brk_handle
+
+                LDA _g_brk_param
+                LDX _g_brk_param + 1
+                LDY _g_brk_param + 2
+                RTI
+.endproc
 
 ; Defines the interrupt vector table.
 
