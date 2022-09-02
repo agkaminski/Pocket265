@@ -7,4 +7,6 @@
 
 void monitor_run(void);
 
+void monitor_displayProgress(unsigned int curr, unsigned int total);
+
 #endif

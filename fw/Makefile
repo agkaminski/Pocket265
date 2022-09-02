@@ -3,7 +3,8 @@ GOAL = fw
 CPU = 6502
 TARGET = $(addsuffix .bin, ${GOAL})
 GHASH = "$(shell git describe --always --dirty)"
-OBJ = main.o interrupt.o dl1414.o keyboard.o timer.o monitor.o memtest.o
+OBJ = main.o interrupt.o dl1414.o keyboard.o timer.o \
+      monitor.o memtest.o gpio.o i2c.o
 
 .PHONY: clean
 .PRECIOUS: %.asm

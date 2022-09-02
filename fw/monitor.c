@@ -11,6 +11,7 @@
 #include "dl1414.h"
 #include "keyboard.h"
 #include "memory.h"
+#include "i2c.h"
 
 typedef enum { mode_data = 0, mode_addr } edit_mode_t;
 
@@ -68,35 +69,74 @@ void monitor_memcpy(void)
 		return;
 	}
 
+	dl1414_puts("\nIn progress");
+
 	memcpy((void *)g_address, (void *)source, len);
 
-	dl1414_puts("\nMem copy done");
+	dl1414_puts("\nMemcopy done");
 	keyboard_get();
 }
 
 void monitor_i2c_save(void)
 {
-	dl1414_puts("\nNot impl");
+	uint16_t dest = 0, len = 0;
+	int ret;
+
+	if (monitor_getu16param("Dest", &dest) < 0) {
+		dl1414_puts("\nAbort");
+		keyboard_get();
+		return;
+	}
+
+	if (monitor_getu16param("Length", &len) < 0 || !len) {
+		dl1414_puts("\nAbort");
+		keyboard_get();
+		return;
+	}
+
+	ret = i2c_write(dest, (void *)g_address, len);
+
+	if (ret < 0) {
+		dl1414_puts("\nI2C error");
+	}
+	else {
+		sprintf(g_buff, "\nWrote %dB", ret);
+		dl1414_puts(g_buff);
+	}
+
 	keyboard_get();
 }
 
 void monitor_i2c_load(void)
 {
-	dl1414_puts("\nNot impl");
+	uint16_t source = 0, len = 0;
+	int ret;
+
+	if (monitor_getu16param("Source", &source) < 0) {
+		dl1414_puts("\nAbort");
+		keyboard_get();
+		return;
+	}
+
+	if (monitor_getu16param("Length", &len) < 0 || !len) {
+		dl1414_puts("\nAbort");
+		keyboard_get();
+		return;
+	}
+
+	ret = i2c_read(source, (void *)g_address, len);
+
+	if (ret < 0) {
+		dl1414_puts("\nI2C error");
+	}
+	else {
+		sprintf(g_buff, "\nRead %dB", ret);
+		dl1414_puts(g_buff);
+	}
+
 	keyboard_get();
 }
 
-void monitor_cf_save(void)
-{
-	dl1414_puts("\nNot impl");
-	keyboard_get();
-}
-
-void monitor_cf_load(void)
-{
-	dl1414_puts("\nNot impl");
-	keyboard_get();
-}
 
 void monitor_uart(void)
 {
@@ -142,6 +182,7 @@ void monitor_upgrade(void)
 
 void monitor_memclr(void)
 {
+	dl1414_puts("\nIn progress");
 	memset((void *)USR_MEM_START, 0, user_memsz);
 	dl1414_puts("\nMemclr done");
 	keyboard_get();
@@ -159,8 +200,6 @@ void monitor_menu(void)
 		{ "Copy mem", monitor_memcpy },
 		{ "I2C save", monitor_i2c_save },
 		{ "I2C load", monitor_i2c_load },
-		{ "CF save",  monitor_cf_save },
-		{ "CF load",  monitor_cf_load },
 		{ "UART com", monitor_uart },
 		{ "CPU id",   monitor_cpuid },
 		{ "Version",  monitor_version },
@@ -193,6 +232,24 @@ void monitor_menu(void)
 			break;
 		}
 	}
+}
+
+void monitor_displayProgress(unsigned int curr, unsigned int total)
+{
+	unsigned int chunk = total / (SCREEN_LENGTH - 2);
+	unsigned char i, segments = (curr + (chunk >> 1)) / chunk;
+
+	g_buff[0] = '[';
+	g_buff[SCREEN_LENGTH - 1] = ']';
+	g_buff[SCREEN_LENGTH] = '\0';
+
+	for (i = 1; i < SCREEN_LENGTH - 1; ++i) {
+		if (i <= segments)
+			g_buff[i] = '#';
+		else
+			g_buff[i] = ' ';
+	}
+	dl1414_puts(g_buff);
 }
 
 void monitor_run(void)
