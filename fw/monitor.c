@@ -16,21 +16,91 @@ typedef enum { mode_data = 0, mode_addr } edit_mode_t;
 
 extern uint16_t user_memsz;
 
+static uint16_t g_address = USR_MEM_START;
+static char g_buff[SCREEN_LENGTH + 2];
+
+static int monitor_getu16param(const char *prompt, uint16_t *param)
+{
+	unsigned char key, done = 0;
+
+	while (!done) {
+		sprintf(g_buff, "\r%5s: %04x", prompt, *param);
+		dl1414_puts(g_buff);
+
+		key = keyboard_get();
+
+		if (key <= 15) {
+			*param = ((*param) << 4) | key;
+		}
+		else {
+			switch (key) {
+			case KEY_GO:
+				done = 1;
+				break;
+			case KEY_INC:
+				++(*param);
+				break;
+			case KEY_DEC:
+				--(*param);
+				break;
+			case KEY_SEL:
+				return -1;
+			}
+		}
+	}
+
+	return 0;
+}
+
 void monitor_memcpy(void)
 {
-	dl1414_puts("\nNot implemented");
+	uint16_t source = 0, len = 0;
+
+	if (monitor_getu16param("Source", &source) < 0) {
+		dl1414_puts("\nAbort");
+		keyboard_get();
+		return;
+	}
+
+	if (monitor_getu16param("Length", &len) < 0 || !len) {
+		dl1414_puts("\nAbort");
+		keyboard_get();
+		return;
+	}
+
+	memcpy((void *)g_address, (void *)source, len);
+
+	dl1414_puts("\nMem copy done");
 	keyboard_get();
 }
 
 void monitor_i2c_save(void)
 {
-	dl1414_puts("\nNot implemented");
+	dl1414_puts("\nNot impl");
 	keyboard_get();
 }
 
 void monitor_i2c_load(void)
 {
-	dl1414_puts("\nNot implemented");
+	dl1414_puts("\nNot impl");
+	keyboard_get();
+}
+
+void monitor_cf_save(void)
+{
+	dl1414_puts("\nNot impl");
+	keyboard_get();
+}
+
+void monitor_cf_load(void)
+{
+	dl1414_puts("\nNot impl");
+	keyboard_get();
+}
+
+void monitor_uart(void)
+{
+	dl1414_puts("\nNot impl");
 	keyboard_get();
 }
 
@@ -39,20 +109,34 @@ void monitor_cpuid(void)
 	const char *str;
 	unsigned char cpu = getcpu();
 
+	dl1414_puts("\ncpu: ");
+
 	switch (cpu) {
-	case CPU_6502:    str = "\n6502";    break;
-	case CPU_65C02:   str = "\n65C02";   break;
-	case CPU_65816:   str = "\n65816";   break;
-	case CPU_4510:    str = "\n4510";    break;
-	case CPU_65SC02:  str = "\n65SC02";  break;
-	case CPU_65CE02:  str = "\n65CE02";  break;
-	case CPU_HUC6280: str = "\nHUC6280"; break;
-	case CPU_2A0x:    str = "\n2A0x";    break;
-	case CPU_45GS02:  str = "\n45GS02";  break;
-	default:          str = "\nUnknown"; break;
+	case CPU_6502:    str = "6502";    break;
+	case CPU_65C02:   str = "65C02";   break;
+	case CPU_65816:   str = "65816";   break;
+	case CPU_4510:    str = "4510";    break;
+	case CPU_65SC02:  str = "65SC02";  break;
+	case CPU_65CE02:  str = "65CE02";  break;
+	case CPU_HUC6280: str = "HUC6280"; break;
+	case CPU_2A0x:    str = "2A0x";    break;
+	case CPU_45GS02:  str = "45GS02";  break;
+	default:          str = "Unknown"; break;
 	}
 
 	dl1414_puts(str);
+	keyboard_get();
+}
+
+void monitor_version(void)
+{
+	dl1414_puts("\n" VERSION);
+	keyboard_get();
+}
+
+void monitor_upgrade(void)
+{
+	dl1414_puts("\nNot impl");
 	keyboard_get();
 }
 
@@ -66,7 +150,7 @@ void monitor_memclr(void)
 void monitor_menu(void)
 {
 	unsigned char selection = 0;
-	char buff[SCREEN_LENGTH + 2];
+	char g_buff[SCREEN_LENGTH + 2];
 	unsigned char key, exit = 0;
 	static const struct {
 		const char *name;
@@ -75,13 +159,18 @@ void monitor_menu(void)
 		{ "Copy mem", monitor_memcpy },
 		{ "I2C save", monitor_i2c_save },
 		{ "I2C load", monitor_i2c_load },
-		{ "CPU id", monitor_cpuid },
-		{ "Clear mem", monitor_memclr }
+		{ "CF save",  monitor_cf_save },
+		{ "CF load",  monitor_cf_load },
+		{ "UART com", monitor_uart },
+		{ "CPU id",   monitor_cpuid },
+		{ "Version",  monitor_version },
+		{ "Upgrade",  monitor_upgrade },
+		{ "Clr mem",  monitor_memclr }
 	};
 
 	while (!exit) {
-		sprintf(buff, "\n%d:%s", selection + 1, items[selection]);
-		dl1414_puts(buff);
+		sprintf(g_buff, "\n%2d:%s", selection + 1, items[selection]);
+		dl1414_puts(g_buff);
 
 		key = keyboard_get();
 
@@ -98,6 +187,7 @@ void monitor_menu(void)
 		case KEY_GO:
 			items[selection].f();
 			break;
+		case KEY_F2:
 		case KEY_SEL:
 			exit = 1;
 			break;
@@ -109,20 +199,18 @@ void monitor_run(void)
 {
 	edit_mode_t mode = mode_data;
 	static const char *modeLUT[] = { " >", "< ", "+>", "+<" };
-	char buff[SCREEN_LENGTH + 2];
-	uint16_t address = USR_MEM_START;
-	uint8_t data = read_data(address), ndata;
+	uint8_t data = read_data(g_address), ndata;
 	unsigned char key_pressed = 0, key;
 	unsigned char autoinc = 0, autoinc_cnt = 0, refresh = 1;
 	struct regs ctx;
 
 	while (1) {
-		ndata = read_data(address);
+		ndata = read_data(g_address);
 
 		if (refresh || ndata != data) {
 			data = ndata;
-			sprintf(buff, "\rMON %04x%s%02x", address, modeLUT[autoinc ? mode + 2 : mode], data);
-			dl1414_puts(buff);
+			sprintf(g_buff, "\rMON %04x%s%02x", g_address, modeLUT[autoinc ? mode + 2 : mode], data);
+			dl1414_puts(g_buff);
 			refresh = 0;
 		}
 
@@ -143,21 +231,21 @@ void monitor_run(void)
 
 		if (key <= 15) {
 			if (mode == mode_data) {
-				data = read_data(address);
+				data = read_data(g_address);
 				data <<= 4;
 				data |= key;
-				write_data(address, data);
+				write_data(g_address, data);
 
 				if (autoinc) {
 					if (++autoinc_cnt >= 2) {
 						autoinc_cnt = 0;
-						++address;
+						++g_address;
 					}
 				}
 			}
 			else {
 				autoinc_cnt = 0;
-				address = (address << 4) | key;
+				g_address = (g_address << 4) | key;
 			}
 		}
 		else {
@@ -174,15 +262,15 @@ void monitor_run(void)
 
 			case KEY_F3:
 			case KEY_F4:
-				/* TODO */
+				/* Free for the future use */
 				break;
 
 			case KEY_INC:
-				++address;
+				++g_address;
 				break;
 
 			case KEY_DEC:
-				--address;
+				--g_address;
 				break;
 
 			case KEY_SEL:
@@ -190,12 +278,12 @@ void monitor_run(void)
 				break;
 
 			case KEY_GO:
-				/* Jump into user program */
+				/* Jump into the user program */
 				ctx.a = 0;
 				ctx.x = 0;
 				ctx.y = 0;
 				ctx.flags = 0;
-				ctx.pc = address;
+				ctx.pc = g_address;
 				_sys(&ctx);
 				break;
 			}
