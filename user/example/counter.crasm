@@ -1,0 +1,31 @@
+CPU 6502
+OUTPUT HEX
+INCLUDE ../lib.crasm
+
+; equ constants here
+
+DUMMY
+* = 0
+
+; Zero page variables here
+num             ds 2
+
+
+CODE
+* = 0x800
+
+; User code here
+                LDA #0
+                STA num
+                STA num + 1
+loop            LDX num
+                LDY num + 1
+                svc_printdU16
+                LDA #255
+                svc_msleep
+                INC num
+                BNE loop
+                INC num + 1
+                BNE loop
+                RTS
+

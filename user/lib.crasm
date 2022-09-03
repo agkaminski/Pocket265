@@ -1,0 +1,85 @@
+_SYSCALL MACRO
+                BRK
+                DB \1
+ENDM
+
+; Input: X, Y - callback address. Output: none
+svc_irqRegister MACRO
+                _SYSCALL 0
+ENDM
+
+; Input: X, Y - callback address. Output: none
+svc_nmiRegister MACRO
+                _SYSCALL 1
+ENDM
+
+; Input: A - ASCII character. Output: none
+svc_putch MACRO
+                _SYSCALL 2
+ENDM
+
+; Input: X, Y - NULL terminated string address. Output: none
+svc_puts MACRO
+                _SYSCALL 3
+ENDM
+
+; Input: A - byte. Output: none
+svc_putb MACRO
+                _SYSCALL 4
+ENDM
+
+; Input: X, Y - number. Output: none
+svc_printxU16 MACRO
+                _SYSCALL 5
+ENDM
+
+; Input: X, Y - number. Output: none
+svc_printdU16 MACRO
+                _SYSCALL 6
+ENDM
+
+; Input: X, Y - number. Output: none
+svc_printdS16 MACRO
+                _SYSCALL 7
+ENDM
+
+; Input: X, Y - prompt string address. Output: X, Y - number.
+svc_scanxU16 MACRO
+                _SYSCALL 8
+ENDM
+
+; Input: X, Y - prompt string address. Output: X, Y - number.
+svc_scandU16 MACRO
+                _SYSCALL 9
+ENDM
+
+; Input: none. Output: A - key code.
+svc_getKey MACRO
+                _SYSCALL 10
+ENDM
+
+; Input: none. Output: A - key code.
+svc_getKeyNb MACRO
+                _SYSCALL 11
+ENDM
+
+; Input: none. Output: A - jiffies.
+svc_getJiffies MACRO
+                _SYSCALL 12
+ENDM
+
+; Input: none. Output: A - seconds.
+svc_getSeconds MACRO
+                _SYSCALL 13
+ENDM
+
+; Input: A - miliseconds to sleep. Output: none.
+svc_msleep MACRO
+                _SYSCALL 14
+ENDM
+
+; Input: A - seconds to sleep. Output: none.
+svc_sleep MACRO
+                _SYSCALL 15
+ENDM
+

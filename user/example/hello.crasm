@@ -1,0 +1,25 @@
+CPU 6502
+OUTPUT HEX
+INCLUDE ../lib.crasm
+
+; equ constants here
+
+DUMMY
+* = 0
+
+; Zero page variables here
+
+screen_ptr      ds 2
+
+CODE
+* = 0x800
+
+; User code here
+
+                LDX #hello_str & 0xff
+                LDY #hello_str >> 8
+                svc_puts
+                svc_getKey
+                RTS
+hello_str       ASC "\nHello World!"
+
