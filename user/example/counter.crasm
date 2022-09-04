@@ -18,14 +18,19 @@ CODE
                 LDA #0
                 STA num
                 STA num + 1
-loop            LDX num
+loop            LDA #'\n'
+                svc_putch
+                LDX num
                 LDY num + 1
                 svc_printdU16
-                LDA #255
+                LDA #200
                 svc_msleep
+                svc_getKeyNb
+                CMP #0xFF
+                BNE end
                 INC num
                 BNE loop
                 INC num + 1
                 BNE loop
-                RTS
+end             RTS
 
