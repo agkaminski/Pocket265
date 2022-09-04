@@ -33,26 +33,31 @@ CODE
 
 ; User code here
 clock           LDA #0
-                LDX #hours
+                LDX #hours + 1
 init_loop       STA 0, X
                 DEX
                 BNE init_loop
 
                 INC hours
-                INC hours + 1
+                INC hours
                 INC hours + 1
 
-                LDA #'\r'
+                LDA #'\n'
                 STA screen
+                LDA #' '
+                STA screen + 1
+                STA screen + 2
                 LDA #'-'
-                STA screen + 3
-                STA screen + 6
+                STA screen + 5
+                STA screen + 8
+                LDA #0
+                STA screen + 11
 
                 LDX #nmi_handler & 0xFF
                 LDY #nmi_handler >> 8
                 svc_nmiRegister
 
-screen_draw     LDX #1
+screen_draw     LDX #3
                 LDA hours + 1
                 JSR putch
                 LDA hours
