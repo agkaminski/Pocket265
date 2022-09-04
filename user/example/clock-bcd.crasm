@@ -31,7 +31,8 @@ CODE
 * = 0x800
 
 ; User code here
-clock           LDA #0
+clock           SED
+                LDA #0
                 STA seconds
                 STA minutes
                 LDA #0x12
@@ -56,6 +57,7 @@ screen_draw     LDA #'\r'
                 LDA #']'
                 svc_putch
                 LDA #'['
+                svc_putch
                 LDA seconds
                 svc_putb
                 LDA #']'
