@@ -8,6 +8,7 @@
 #include "timer.h"
 #include "keyboard.h"
 #include "dl1414.h"
+#include "interrupt.h"
 
 struct brk_param {
 	uint8_t a;
@@ -20,12 +21,14 @@ static char g_buff[SCREEN_LENGTH + 1];
 
 void brk_irqRegister(void)
 {
-	/* TODO */
+	g_irq_callback = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
+	g_irq_valid = 1;
 }
 
 void brk_nmiRegister(void)
 {
-	/* TODO */
+	g_nmi_callback = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
+	g_nmi_valid = 1;
 }
 
 void brk_putch(void)
@@ -38,7 +41,7 @@ void brk_putch(void)
 
 void brk_puts(void)
 {
-	uint16_t address = g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
+	uint16_t address = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
 
 	dl1414_puts((void *)address);
 }
@@ -51,7 +54,7 @@ void brk_putb(void)
 
 void brk_printxU16(void)
 {
-	uint16_t param = g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
+	uint16_t param = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
 
 	sprintf(g_buff, "%04x", param);
 	dl1414_puts(g_buff);
@@ -59,7 +62,7 @@ void brk_printxU16(void)
 
 void brk_printdU16(void)
 {
-	uint16_t param = g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
+	uint16_t param = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
 
 	sprintf(g_buff, "%u", param);
 	dl1414_puts(g_buff);
@@ -67,7 +70,7 @@ void brk_printdU16(void)
 
 void brk_printdS16(void)
 {
-	uint16_t param = g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
+	uint16_t param = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
 
 	sprintf(g_buff, "%d", (int16_t)param); /* integer overflow, I don't care */
 	dl1414_puts(g_buff);

@@ -12,6 +12,7 @@
 #include "keyboard.h"
 #include "memory.h"
 #include "i2c.h"
+#include "interrupt.h"
 
 typedef enum { mode_data = 0, mode_addr } edit_mode_t;
 
@@ -342,6 +343,9 @@ void monitor_run(void)
 				ctx.flags = 0;
 				ctx.pc = g_address;
 				_sys(&ctx);
+
+				g_nmi_valid = 0;
+				g_irq_valid = 0;
 				break;
 			}
 		}

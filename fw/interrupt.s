@@ -13,6 +13,16 @@
 .import   _init, _stop
 .export   _nmi_clr
 
+.segment "BSS"
+
+_g_nmi_callback: .res 2,$00
+_g_irq_callback: .res 2,$00
+_g_nmi_valid: .res 1,$00
+_g_irq_valid: .res 1,$00
+
+.export _g_nmi_callback, _g_irq_callback
+.export _g_nmi_valid, _g_irq_valid
+
 .segment  "CODE"
 
 ; ---------------------------------------------------------------------------
@@ -82,7 +92,9 @@
 ; ---------------------------------------------------------------------------
 ; Non-maskable interrupt (NMI) service routine
 
-_nmi_int:       PHA
+.proc _nmi_int: near
+
+                PHA
                 TXA
                 PHA
                 TYA
@@ -96,7 +108,16 @@ _nmi_int:       PHA
 
                 JSR scan_keyb
                 JSR handle_timer
-                JSR _nmi_clr
+
+                LDA _g_nmi_valid
+                BEQ @end
+
+                LDA #.hibyte(@end - 1)
+                PHA
+                LDA #.lobyte(@end - 1)
+                PHA
+                JMP (_g_nmi_callback)
+@end:           JSR _nmi_clr
 
                 PLA
                 TAY
@@ -104,11 +125,14 @@ _nmi_int:       PHA
                 TAX
                 PLA
                 RTI
+.endproc
 
 ; ---------------------------------------------------------------------------
 ; Maskable interrupt (IRQ) service routine
 
-_irq_int:       PHA
+.proc _irq_int: near
+
+                PHA
                 TXA
                 PHA
                 TYA
@@ -120,14 +144,22 @@ _irq_int:       PHA
                 AND #$10
                 BNE _break
 
-                ; TODO
+                LDA _g_irq_valid
+                BEQ @end
 
-                PLA
+                LDA #.hibyte(@end - 1)
+                PHA
+                LDA #.lobyte(@end - 1)
+                PHA
+                JMP (_g_irq_callback)
+
+@end:           PLA
                 TAY
                 PLA
                 TAX
                 PLA
                 RTI
+.endproc
 
 ; ---------------------------------------------------------------------------
 ; BRK
@@ -138,7 +170,7 @@ _irq_int:       PHA
 
 .segment "ZEROPAGE"
 
-@indirect: .res	2,$00
+@indirect: .res 2,$00
 
 .segment "CODE"
 
