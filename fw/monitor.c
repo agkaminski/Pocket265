@@ -226,6 +226,7 @@ void monitor_menu(void)
 			break;
 		case KEY_GO:
 			items[selection].f();
+			exit = 1;
 			break;
 		case KEY_F2:
 		case KEY_SEL:
