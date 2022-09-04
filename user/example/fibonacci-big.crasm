@@ -4,33 +4,45 @@ INCLUDE ../lib.crasm
 
 ; equ constants here
 
+LENGTH EQU 12
+
 DUMMY
 * = 0
 
 ; Zero page variables here
 
-curr            ds 8
-prev            ds 8
+curr            ds LENGTH
+prev            ds LENGTH
 
 CODE
 * = 0x800
 
 ; User code here
                 LDA #0
-                LDX #7
+                LDX #LENGTH - 1
 init_l0         STA curr, X
                 STA prev, X
                 DEX
                 BPL init_l0
-                INC curr + 7
+                INC curr + LENGTH - 1
 
-loop            LDX #7
-add             LDA curr, X
-                PHA
+loop            LDA #'\n'
+                svc_putch
+
+                LDX #0
+
+ploop           LDA curr, X
                 CLC
                 ADC #'0'
                 svc_putch
+                INX
+                CPX #LENGTH
+                BCC ploop
+
+                LDX #LENGTH - 1
                 CLC
+add             LDA curr, X
+                PHA
                 ADC prev, X
                 CMP #10
                 BMI ncarry

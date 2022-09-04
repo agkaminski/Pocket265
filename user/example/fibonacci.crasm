@@ -24,7 +24,9 @@ CODE
                 STA prev + 1
                 INC curr + 1
 
-loop            LDY curr
+loop            LDA #'\n'
+                svc_putch
+                LDY curr
                 LDX curr + 1
                 svc_printdU16
                 svc_getKey
