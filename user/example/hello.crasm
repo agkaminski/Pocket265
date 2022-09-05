@@ -22,4 +22,5 @@ CODE
                 svc_getKey
                 RTS
 hello_str       ASC "\nHello World!"
+                DB 0
 

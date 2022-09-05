@@ -11,7 +11,7 @@ DUMMY
 
 
 CODE
-* = 0x200
+* = 0x800
 
 ; User code here
 
@@ -45,5 +45,8 @@ end             CLD
                 RTS
 
 str6502         ASC "\n6502"
+                DB 0
 str65c02        ASC "\n65C02"
+                DB 0
 str65c816       ASC "\n65C816"
+                DB 0
