@@ -87,10 +87,42 @@ static int i2c_getByte(uint8_t *byte, uint8_t ack)
 	return 0;
 }
 
+static int i2c_address(uint8_t dev, uint16_t address)
+{
+	char retry;
+
+	i2c_generateStart();
+
+	for (retry = 20; retry > 0; --retry) {
+		if (i2c_sendByte(dev) >= 0)
+			break;
+
+		timer_wait_ms(1);
+		i2c_generateStart();
+	}
+
+	if (retry <= 0) {
+		i2c_generateStop();
+		return -1;
+	}
+
+	if (!(dev & 1)) {
+		if (i2c_sendByte((address) >> 8) < 0) {
+			i2c_generateStop();
+			return -1;
+		}
+		if (i2c_sendByte((address) & 0xff) < 0) {
+			i2c_generateStop();
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 int i2c_write(uint16_t address, uint8_t *data, uint16_t len)
 {
 	uint16_t i;
-	char retry;
 
 	if (address >= MEMSZ)
 		return 0;
@@ -99,26 +131,7 @@ int i2c_write(uint16_t address, uint8_t *data, uint16_t len)
 		len = MEMSZ - address;
 
 	for (i = 0; i < len; ++i) {
-		i2c_generateStart();
-
-		for (retry = 20; retry > 0; --retry) {
-			if (i2c_sendByte(DEVADDR) >= 0)
-				break;
-
-			timer_wait_ms(1);
-			i2c_generateStart();
-		}
-
-		if (retry <= 0) {
-			i2c_generateStop();
-			return -1;
-		}
-
-		if (i2c_sendByte((address + i) >> 8) < 0) {
-			i2c_generateStop();
-			return -1;
-		}
-		if (i2c_sendByte((address + i) & 0xff) < 0) {
+		if (i2c_address(DEVADDR, address + i) < 0) {
 			i2c_generateStop();
 			return -1;
 		}
@@ -139,7 +152,6 @@ int i2c_write(uint16_t address, uint8_t *data, uint16_t len)
 int i2c_read(uint16_t address, uint8_t *data, uint16_t len)
 {
 	uint16_t i;
-	char retry;
 
 	if (address >= MEMSZ)
 		return 0;
@@ -147,41 +159,12 @@ int i2c_read(uint16_t address, uint8_t *data, uint16_t len)
 	if (address + len > MEMSZ)
 		len = MEMSZ - address;
 
-	i2c_generateStart();
-
-	for (retry = 10; retry > 0; --retry) {
-		if (i2c_sendByte(DEVADDR) >= 0)
-			break;
-
-		timer_wait_ms(1);
-		i2c_generateStart();
-	}
-
-	if (retry <= 0) {
+	if (i2c_address(DEVADDR, address) < 0) {
 		i2c_generateStop();
 		return -1;
 	}
 
-	if (i2c_sendByte(address >> 8) < 0) {
-		i2c_generateStop();
-		return -1;
-	}
-	if (i2c_sendByte(address & 0xff) < 0) {
-		i2c_generateStop();
-		return -1;
-	}
-
-	i2c_generateStart();
-
-	for (retry = 10; retry > 0; --retry) {
-		if (i2c_sendByte(DEVADDR | 1) >= 0)
-			break;
-
-		timer_wait_ms(1);
-		i2c_generateStart();
-	}
-
-	if (retry <= 0) {
+	if (i2c_address(DEVADDR | 1, 0) < 0) {
 		i2c_generateStop();
 		return -1;
 	}
