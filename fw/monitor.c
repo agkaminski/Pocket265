@@ -311,19 +311,6 @@ void monitor_displayProgress(unsigned int curr, unsigned int total)
 	dl1414_puts(g_buff);
 }
 
-static void monitor_refresh(struct mon_ctx *monctx, unsigned char force)
-{
-	uint8_t ndata = read_data(g_address);
-	static const char *modeLUT[] = { " >", "< ", "+>", "+<" };
-
-	if (force || ndata != g_dataPrev) {
-		g_dataPrev = ndata;
-		sprintf(g_buff, "\rMON %04x%s%02x", g_address,
-			modeLUT[monctx->autoinc ? monctx->mode + 2 : monctx->mode], ndata);
-		dl1414_puts(g_buff);
-	}
-}
-
 static void monitor_do(unsigned char input, struct mon_ctx *monctx)
 {
 	unsigned char data;
@@ -397,6 +384,8 @@ void monitor_run(void)
 {
 	unsigned char key_pressed = 0, key, refresh = 1;
 	struct mon_ctx ctx;
+	uint8_t ndata;
+	static const char *modeLUT[] = { " >", "< ", "+>", "+<" };
 
 	g_dataPrev = read_data(g_address);
 
@@ -405,8 +394,15 @@ void monitor_run(void)
 	ctx.autoinc_cnt = 0;
 
 	while (1) {
-		monitor_refresh(&ctx, refresh);
-		refresh = 0;
+		ndata = read_data(g_address);
+
+		if (refresh || ndata != g_dataPrev) {
+			g_dataPrev = ndata;
+			sprintf(g_buff, "\rMON %04x%s%02x", g_address,
+				modeLUT[ctx.autoinc ? ctx.mode + 2 : ctx.mode], ndata);
+			dl1414_puts(g_buff);
+			refresh = 0;
+		}
 
 		key = keyboard_get_nonblock();
 
