@@ -29,6 +29,8 @@ struct mon_ctx {
 	unsigned char autoinc_cnt;
 };
 
+static void monitor_do(unsigned char input, struct mon_ctx *monctx);
+
 static int monitor_getu16param(const char *prompt, uint16_t *param)
 {
 	unsigned char key, done = 0;
@@ -62,7 +64,7 @@ static int monitor_getu16param(const char *prompt, uint16_t *param)
 	return 0;
 }
 
-void monitor_memcpy(void)
+static void monitor_memcpy(void)
 {
 	uint16_t source = 0, len = 0;
 
@@ -86,7 +88,7 @@ void monitor_memcpy(void)
 	keyboard_get();
 }
 
-void monitor_i2c_save(void)
+static void monitor_i2c_save(void)
 {
 	uint16_t dest = 0, len = 0;
 	int ret;
@@ -116,7 +118,7 @@ void monitor_i2c_save(void)
 	keyboard_get();
 }
 
-void monitor_i2c_load(void)
+static void monitor_i2c_load(void)
 {
 	uint16_t source = 0, len = 0;
 	int ret;
@@ -147,11 +149,14 @@ void monitor_i2c_load(void)
 }
 
 
-void monitor_uart(void)
+static void monitor_uart(void)
 {
-	unsigned char data[2];
+	unsigned char data, key;
+	struct mon_ctx ctx;
 
-	data[1] = '\0';
+	ctx.mode = mode_data;
+	ctx.autoinc = 1;
+	ctx.autoinc_cnt = 0;
 
 	dl1414_puts("\nUART 200 BN1");
 
@@ -159,14 +164,52 @@ void monitor_uart(void)
 		;
 
 	while (keyboard_get_nonblock() == KEY_NONE) {
-		if (uart_rx(data) > 0) {
-			dl1414_puts(data);
-			uart_tx(*data);
+		key = KEY_NONE;
+
+		if (uart_rx(&data) > 0) {
+			if (data >= '0' && data <= '9') {
+				key = data - '0';
+			}
+			else if (data >= 'a' && data <= 'f') {
+				key = data - 'a' + 10;
+			}
+			else if (data >= 'A' && data <= 'F') {
+				key = data - 'A' + 10;
+			}
+			else if (data == '@') {
+				ctx.mode = mode_addr;
+				ctx.autoinc_cnt = 0;
+				uart_tx(data);
+				continue;
+			}
+			else if (data == '#') {
+				ctx.mode = mode_data;
+				ctx.autoinc_cnt = 0;
+				uart_tx(data);
+				continue;
+			}
+			else if (data == '+') {
+				key = KEY_INC;
+			}
+			else if (data == '-') {
+				key = KEY_DEC;
+			}
+			else if (data == '!') {
+				uart_tx(data);
+				monitor_do(KEY_GO, &ctx);
+				break;
+			}
+			else {
+				continue;
+			}
+
+			monitor_do(key, &ctx);
+			uart_tx(data);
 		}
 	}
 }
 
-void monitor_cpuid(void)
+static void monitor_cpuid(void)
 {
 	const char *str;
 	unsigned char cpu = getcpu();
@@ -190,19 +233,13 @@ void monitor_cpuid(void)
 	keyboard_get();
 }
 
-void monitor_version(void)
+static void monitor_version(void)
 {
 	dl1414_puts("\n" VERSION);
 	keyboard_get();
 }
 
-void monitor_upgrade(void)
-{
-	dl1414_puts("\nNot impl");
-	keyboard_get();
-}
-
-void monitor_memclr(void)
+static void monitor_memclr(void)
 {
 	dl1414_puts("\nIn progress");
 	memset((void *)USR_MEM_START, 0, user_memsz);
@@ -210,7 +247,7 @@ void monitor_memclr(void)
 	keyboard_get();
 }
 
-void monitor_menu(void)
+static void monitor_menu(void)
 {
 	unsigned char selection = 0;
 	char g_buff[SCREEN_LENGTH + 2];
@@ -225,7 +262,6 @@ void monitor_menu(void)
 		{ "UART com", monitor_uart },
 		{ "CPU id",   monitor_cpuid },
 		{ "Version",  monitor_version },
-		{ "Upgrade",  monitor_upgrade },
 		{ "Clr mem",  monitor_memclr }
 	};
 
@@ -275,8 +311,7 @@ void monitor_displayProgress(unsigned int curr, unsigned int total)
 	dl1414_puts(g_buff);
 }
 
-
-void monitor_refresh(struct mon_ctx *monctx, unsigned char force)
+static void monitor_refresh(struct mon_ctx *monctx, unsigned char force)
 {
 	uint8_t ndata = read_data(g_address);
 	static const char *modeLUT[] = { " >", "< ", "+>", "+<" };
@@ -289,8 +324,7 @@ void monitor_refresh(struct mon_ctx *monctx, unsigned char force)
 	}
 }
 
-
-void monitor_do(unsigned char input, struct mon_ctx *monctx)
+static void monitor_do(unsigned char input, struct mon_ctx *monctx)
 {
 	unsigned char data;
 	struct regs ctx;
