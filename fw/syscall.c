@@ -4,11 +4,13 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <pocket265.h>
 
 #include "timer.h"
 #include "keyboard.h"
 #include "dl1414.h"
 #include "interrupt.h"
+#include "monitor.h"
 
 struct brk_param {
 	uint8_t a;
@@ -78,12 +80,22 @@ void brk_printdS16(void)
 
 void brk_scanxU16(void)
 {
-	/* TODO */
+	uint16_t output = 0, prompt = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
+
+	monitor_getu16param((void *)prompt, &output, 0);
+
+	g_brk_param.x = output & 0xff;
+	g_brk_param.y = output >> 8;
 }
 
 void brk_scandU16(void)
 {
-	/* TODO */
+	uint16_t output = 0, prompt = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
+
+	monitor_getu16param((void *)prompt, &output, 1);
+
+	g_brk_param.x = output & 0xff;
+	g_brk_param.y = output >> 8;
 }
 
 void brk_getKey(void)

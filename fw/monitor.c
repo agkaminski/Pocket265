@@ -31,18 +31,40 @@ struct mon_ctx {
 
 static void monitor_do(unsigned char input, struct mon_ctx *monctx);
 
-static int monitor_getu16param(const char *prompt, uint16_t *param)
+void monitor_getu16param(const char *prompt, uint16_t *param, char type)
 {
 	unsigned char key, done = 0;
+	const char *fmt = "\r%6s: %04x";
+	unsigned char num[6] = { 0 }, i;
+
+	if (type)
+		fmt = "\r%6s:%5u";
 
 	while (!done) {
-		sprintf(g_buff, "\r%5s: %04x", prompt, *param);
+		if (type) {
+			for (i = 5, *param = 0; i > 0; --i) {
+				*param *= 10;
+				*param += num[i];
+			}
+		}
+
+		sprintf(g_buff, fmt, prompt, *param);
 		dl1414_puts(g_buff);
 
 		key = keyboard_get();
 
 		if (key <= 15) {
-			*param = ((*param) << 4) | key;
+			if (type) {
+				if (key <= 9) {
+					num[0] = key;
+
+					for (i = 5, *param = 0; i > 0; --i)
+						num[i] = num[i - 1];
+				}
+			}
+			else {
+				*param = ((*param) << 4) | key;
+			}
 		}
 		else {
 			switch (key) {
@@ -56,35 +78,34 @@ static int monitor_getu16param(const char *prompt, uint16_t *param)
 				--(*param);
 				break;
 			case KEY_SEL:
-				return -1;
+				if (type) {
+					for (i = 0; i < 5; ++i)
+						num[i] = num[i + 1];
+
+					num[5] = 0;
+				}
+				else {
+					*param >>= 4;
+				}
 			}
 		}
 	}
-
-	return 0;
 }
 
 static void monitor_memcpy(void)
 {
 	uint16_t source = 0, len = 0;
 
-	if (monitor_getu16param("Source", &source) < 0) {
-		dl1414_puts("\nAbort");
-		keyboard_get();
-		return;
-	}
-
-	if (monitor_getu16param("Length", &len) < 0 || !len) {
-		dl1414_puts("\nAbort");
-		keyboard_get();
-		return;
-	}
+	monitor_getu16param("Source", &source, 0);
+	monitor_getu16param("Length", &len, 0);
 
 	dl1414_puts("\nIn progress");
 
 	memcpy((void *)g_address, (void *)source, len);
 
-	dl1414_puts("\nMemcopy done");
+	sprintf(g_buff, "\nCopied %u", len);
+	dl1414_puts(g_buff);
+
 	keyboard_get();
 }
 
@@ -93,17 +114,8 @@ static void monitor_i2c_save(void)
 	uint16_t dest = 0, len = 0;
 	int ret;
 
-	if (monitor_getu16param("Dest", &dest) < 0) {
-		dl1414_puts("\nAbort");
-		keyboard_get();
-		return;
-	}
-
-	if (monitor_getu16param("Length", &len) < 0 || !len) {
-		dl1414_puts("\nAbort");
-		keyboard_get();
-		return;
-	}
+	monitor_getu16param("Dest", &dest, 0);
+	monitor_getu16param("Length", &len, 0);
 
 	ret = i2c_write(dest, (void *)g_address, len);
 
@@ -123,17 +135,8 @@ static void monitor_i2c_load(void)
 	uint16_t source = 0, len = 0;
 	int ret;
 
-	if (monitor_getu16param("Source", &source) < 0) {
-		dl1414_puts("\nAbort");
-		keyboard_get();
-		return;
-	}
-
-	if (monitor_getu16param("Length", &len) < 0 || !len) {
-		dl1414_puts("\nAbort");
-		keyboard_get();
-		return;
-	}
+	monitor_getu16param("Source", &source, 0);
+	monitor_getu16param("Length", &len, 0);
 
 	ret = i2c_read(source, (void *)g_address, len);
 

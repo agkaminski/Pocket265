@@ -7,6 +7,8 @@
 
 void monitor_run(void);
 
+void monitor_getu16param(const char *prompt, uint16_t *param, char type);
+
 void monitor_displayProgress(unsigned int curr, unsigned int total);
 
 #endif
