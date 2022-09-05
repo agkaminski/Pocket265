@@ -116,6 +116,18 @@ void brk_sleep(void)
 	timer_wait_sec(g_brk_param.a);
 }
 
+void brk_nmiDisable(void)
+{
+	g_nmi_disable = 1;
+	while (g_nmi_disable)
+		;
+}
+
+void brk_nmiStart(void)
+{
+	nmi_clr();
+}
+
 void brk_handle(void)
 {
 	static const void (*ftable[])(void) = {
@@ -134,7 +146,9 @@ void brk_handle(void)
 		brk_getJiffies,
 		brk_getSeconds,
 		brk_msleep,
-		brk_sleep
+		brk_sleep,
+		brk_nmiDisable,
+		brk_nmiStart
 	};
 
 	if (g_brk_param.n < sizeof(ftable) / sizeof(ftable[0]))

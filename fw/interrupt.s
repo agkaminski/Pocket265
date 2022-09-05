@@ -19,9 +19,11 @@ _g_nmi_callback: .res 2,$00
 _g_irq_callback: .res 2,$00
 _g_nmi_valid: .res 1,$00
 _g_irq_valid: .res 1,$00
+_g_nmi_disable: .res 1,$00
 
 .export _g_nmi_callback, _g_irq_callback
 .export _g_nmi_valid, _g_irq_valid
+.export _g_nmi_disable
 
 .segment  "CODE"
 
@@ -117,8 +119,14 @@ _g_irq_valid: .res 1,$00
                 LDA #.lobyte(@end - 1)
                 PHA
                 JMP (_g_nmi_callback)
-@end:           JSR _nmi_clr
 
+@end:           LDX #0
+                LDA _g_nmi_disable
+                BNE @disable
+
+                JSR _nmi_clr
+
+@disable:       STX _g_nmi_disable
                 PLA
                 TAY
                 PLA
