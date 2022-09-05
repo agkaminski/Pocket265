@@ -212,30 +212,6 @@ static void monitor_uart(void)
 	}
 }
 
-static void monitor_cpuid(void)
-{
-	const char *str;
-	unsigned char cpu = getcpu();
-
-	dl1414_puts("\ncpu: ");
-
-	switch (cpu) {
-	case CPU_6502:    str = "6502";    break;
-	case CPU_65C02:   str = "65C02";   break;
-	case CPU_65816:   str = "65816";   break;
-	case CPU_4510:    str = "4510";    break;
-	case CPU_65SC02:  str = "65SC02";  break;
-	case CPU_65CE02:  str = "65CE02";  break;
-	case CPU_HUC6280: str = "HUC6280"; break;
-	case CPU_2A0x:    str = "2A0x";    break;
-	case CPU_45GS02:  str = "45GS02";  break;
-	default:          str = "Unknown"; break;
-	}
-
-	dl1414_puts(str);
-	keyboard_get();
-}
-
 static void monitor_version(void)
 {
 	dl1414_puts("\n" VERSION);
@@ -263,7 +239,6 @@ static void monitor_menu(void)
 		{ "I2C save", monitor_i2c_save },
 		{ "I2C load", monitor_i2c_load },
 		{ "UART com", monitor_uart },
-		{ "CPU id",   monitor_cpuid },
 		{ "Version",  monitor_version },
 		{ "Clr mem",  monitor_memclr }
 	};
