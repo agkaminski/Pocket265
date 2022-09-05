@@ -20,7 +20,14 @@ typedef enum { mode_data = 0, mode_addr } edit_mode_t;
 extern uint16_t user_memsz;
 
 static uint16_t g_address = USR_MEM_START;
+static uint8_t g_dataPrev;
 static char g_buff[SCREEN_LENGTH + 2];
+
+struct mon_ctx {
+	edit_mode_t mode;
+	unsigned char autoinc;
+	unsigned char autoinc_cnt;
+};
 
 static int monitor_getu16param(const char *prompt, uint16_t *param)
 {
@@ -268,24 +275,104 @@ void monitor_displayProgress(unsigned int curr, unsigned int total)
 	dl1414_puts(g_buff);
 }
 
-void monitor_run(void)
+
+void monitor_refresh(struct mon_ctx *monctx, unsigned char force)
 {
-	edit_mode_t mode = mode_data;
+	uint8_t ndata = read_data(g_address);
 	static const char *modeLUT[] = { " >", "< ", "+>", "+<" };
-	uint8_t data = read_data(g_address), ndata;
-	unsigned char key_pressed = 0, key;
-	unsigned char autoinc = 0, autoinc_cnt = 0, refresh = 1;
+
+	if (force || ndata != g_dataPrev) {
+		g_dataPrev = ndata;
+		sprintf(g_buff, "\rMON %04x%s%02x", g_address,
+			modeLUT[monctx->autoinc ? monctx->mode + 2 : monctx->mode], ndata);
+		dl1414_puts(g_buff);
+	}
+}
+
+
+void monitor_do(unsigned char input, struct mon_ctx *monctx)
+{
+	unsigned char data;
 	struct regs ctx;
 
-	while (1) {
-		ndata = read_data(g_address);
+	if (input <= 15) {
+		if (monctx->mode == mode_data) {
+			data = read_data(g_address);
+			data <<= 4;
+			data |= input;
+			write_data(g_address, data);
 
-		if (refresh || ndata != data) {
-			data = ndata;
-			sprintf(g_buff, "\rMON %04x%s%02x", g_address, modeLUT[autoinc ? mode + 2 : mode], data);
-			dl1414_puts(g_buff);
-			refresh = 0;
+			if (monctx->autoinc) {
+				if (++(monctx->autoinc_cnt) >= 2) {
+					monctx->autoinc_cnt = 0;
+					++g_address;
+				}
+			}
 		}
+		else {
+			monctx->autoinc_cnt = 0;
+			g_address = (g_address << 4) | input;
+		}
+	}
+	else {
+		monctx->autoinc_cnt = 0;
+
+		switch (input) {
+		case KEY_F1:
+			monctx->autoinc = monctx->autoinc ? 0 : 1;
+			break;
+
+		case KEY_F2:
+			monitor_menu();
+			break;
+
+		case KEY_F3:
+		case KEY_F4:
+			/* Free for the future use */
+			break;
+
+		case KEY_INC:
+			++g_address;
+			break;
+
+		case KEY_DEC:
+			--g_address;
+			break;
+
+		case KEY_SEL:
+			monctx->mode = monctx->mode == mode_addr ? mode_data : mode_addr;
+			break;
+
+		case KEY_GO:
+			/* Jump into the user program */
+			ctx.a = 0;
+			ctx.x = 0;
+			ctx.y = 0;
+			ctx.flags = 0;
+			ctx.pc = g_address;
+			_sys(&ctx);
+
+			g_nmi_valid = 0;
+			g_irq_valid = 0;
+			break;
+		}
+	}
+}
+
+void monitor_run(void)
+{
+	unsigned char key_pressed = 0, key, refresh = 1;
+	struct mon_ctx ctx;
+
+	g_dataPrev = read_data(g_address);
+
+	ctx.mode = mode_data;
+	ctx.autoinc = 0;
+	ctx.autoinc_cnt = 0;
+
+	while (1) {
+		monitor_refresh(&ctx, refresh);
+		refresh = 0;
 
 		key = keyboard_get_nonblock();
 
@@ -299,70 +386,8 @@ void monitor_run(void)
 			continue;
 
 		key_pressed = 1;
-
 		refresh = 1;
 
-		if (key <= 15) {
-			if (mode == mode_data) {
-				data = read_data(g_address);
-				data <<= 4;
-				data |= key;
-				write_data(g_address, data);
-
-				if (autoinc) {
-					if (++autoinc_cnt >= 2) {
-						autoinc_cnt = 0;
-						++g_address;
-					}
-				}
-			}
-			else {
-				autoinc_cnt = 0;
-				g_address = (g_address << 4) | key;
-			}
-		}
-		else {
-			autoinc_cnt = 0;
-
-			switch (key) {
-			case KEY_F1:
-				autoinc = autoinc ? 0 : 1;
-				break;
-
-			case KEY_F2:
-				monitor_menu();
-				break;
-
-			case KEY_F3:
-			case KEY_F4:
-				/* Free for the future use */
-				break;
-
-			case KEY_INC:
-				++g_address;
-				break;
-
-			case KEY_DEC:
-				--g_address;
-				break;
-
-			case KEY_SEL:
-				mode = mode == mode_addr ? mode_data : mode_addr;
-				break;
-
-			case KEY_GO:
-				/* Jump into the user program */
-				ctx.a = 0;
-				ctx.x = 0;
-				ctx.y = 0;
-				ctx.flags = 0;
-				ctx.pc = g_address;
-				_sys(&ctx);
-
-				g_nmi_valid = 0;
-				g_irq_valid = 0;
-				break;
-			}
-		}
+		monitor_do(key, &ctx);
 	}
 }
