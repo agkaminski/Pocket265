@@ -11,7 +11,7 @@ HEX=`xxd -ps $2`
 HEX="@"$ADDR"#"$HEX"@"$ADDR"#"
 HEX=`echo $HEX | sed -e 's/\(.\)/\1\n/g'`
 
-stty -F $1 raw ospeed 200 ispeed 200
+stty -F $1 0:4:cb6:a30:3:1c:7f:15:4:0:1:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0
 
 echo "Sending file $2 to $1"
 
