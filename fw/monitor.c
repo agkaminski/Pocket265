@@ -214,7 +214,8 @@ static void monitor_uart(void)
 
 static void monitor_version(void)
 {
-	dl1414_puts("\n" VERSION);
+	sprintf(g_buff, "\n%.12s", VERSION);
+	dl1414_puts(g_buff);
 	keyboard_get();
 }
 
