@@ -83,3 +83,13 @@ svc_sleep MACRO
                 _SYSCALL 15
 ENDM
 
+; Input: None. Output: none.
+svc_nmiDisable MACRO
+                _SYSCALL 16
+ENDM
+
+; Input: None. Output: none.
+svc_nmiStart MACRO
+                _SYSCALL 17
+ENDM
+
