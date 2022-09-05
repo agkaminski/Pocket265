@@ -13,6 +13,7 @@
 #include "memory.h"
 #include "i2c.h"
 #include "interrupt.h"
+#include "uart.h"
 
 typedef enum { mode_data = 0, mode_addr } edit_mode_t;
 
@@ -141,8 +142,21 @@ void monitor_i2c_load(void)
 
 void monitor_uart(void)
 {
-	dl1414_puts("\nNot impl");
-	keyboard_get();
+	unsigned char data[2];
+
+	data[1] = '\0';
+
+	dl1414_puts("\nUART 200 BN1");
+
+	while (keyboard_get_nonblock() != KEY_NONE)
+		;
+
+	while (keyboard_get_nonblock() == KEY_NONE) {
+		if (uart_rx(data) > 0) {
+			dl1414_puts(data);
+			uart_tx(*data);
+		}
+	}
 }
 
 void monitor_cpuid(void)
