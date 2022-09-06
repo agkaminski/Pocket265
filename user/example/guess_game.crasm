@@ -1,0 +1,67 @@
+CPU 6502
+OUTPUT HEX
+INCLUDE ../lib.crasm
+
+; equ constants here
+
+DUMMY
+* = 0
+
+; Zero page variables here
+rand            ds 1
+tries           ds 1
+
+
+CODE
+* = 0x800
+
+; User code here
+                LDA #0
+                STA tries
+                svc_getJiffies
+randprep        CMP #100
+                BCC randrdy
+                LSR
+                JMP randprep
+randrdy         STA rand
+
+                LDX #startstr & 0xFF
+                LDY #startstr >> 8
+prompt          svc_scandU16
+                TXA
+                INC tries
+
+                CMP rand
+                BEQ end
+                BCC small
+
+                LDX #toobigstr & 0xFF
+                LDY #toobigstr >> 8
+                JMP prompt
+
+small           LDX #toosmallstr & 0xFF
+                LDY #toosmallstr >> 8
+                JMP prompt
+
+end             LDA #'\n'
+                svc_putch
+
+                LDX tries
+                LDY #0
+                svc_printdU16
+
+                LDX #winstr & 0xFF
+                LDY #winstr >> 8
+                svc_puts
+
+                svc_getKey
+                RTS
+
+startstr        ASC "\nGuess?"
+                DB 0
+toobigstr       ASC "\nless  "
+                DB 0
+toosmallstr     ASC "\nmore  "
+                DB 0
+winstr          ASC " tries"
+                DB 0

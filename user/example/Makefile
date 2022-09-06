@@ -1,4 +1,4 @@
-EXAMPLES = hello fibonacci fibonacci-big counter clock clock-bcd cpuid nmi
+EXAMPLES = hello fibonacci fibonacci-big counter clock clock-bcd cpuid nmi guess_game
 
 TARGET = $(addsuffix .txt, ${EXAMPLES})
 
