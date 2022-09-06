@@ -25,21 +25,20 @@ void usage(char *progname)
 }
 
 
-u8 screen[12];
+volatile u8 screen[12];
 u8 key_row[6];
+volatile u8 nmi_dis = 1;
 
 
 void screen_write(u16 addr, u8 data)
 {
-	u16 pos = 0;
+	u16 pos = addr & 0xf;
 
-	DEBUG("screen write @%04x = %02x\n", addr, data);
+	if (data == '\0')
+		data = ' ';
 
-	if (addr & (1 << 2))
-		pos = 8;
-
-	pos += addr & 0x3;
-	screen[pos] = data;
+	if (pos < sizeof(screen))
+		screen[sizeof(screen) - 1 - pos] = data;
 }
 
 
@@ -68,6 +67,19 @@ u8 keyboard_read(u16 addr)
 	DEBUG("%04x %02x\n", addr, ret);
 
 	return ret;
+}
+
+
+void nmiclr_write(u16 addr, u8 data)
+{
+	nmi_dis = 0;
+}
+
+
+u8 nmiclr_read(u16 addr)
+{
+	nmi_dis = 0;
+	return 0xff;
 }
 
 
@@ -157,12 +169,20 @@ void pocket265(void)
 
 	bus_register(busentry);
 
+	/* NMI clr */
+	busentry.begin = 0xc800;
+	busentry.end = 0xcbff;
+	busentry.write = nmiclr_write;
+	busentry.read = nmiclr_read;
+
+	bus_register(busentry);
+
 	core_run();
 
 	thread_create(&keyb_thread, keyboard_thread, NULL);
 
 	while (1) {
-		printf("\033[2J\x1B[H[ %s]\n\n"
+		printf("\033[2J\x1B[H[%12s]\n\n"
 		       "[ F1  ][ F2  ][ F3  ][ F4  ]\n"
 		       "[ C   ][ D   ][ E   ][ F   ]\n"
 		       "[ 8   ][ 9   ][ A   ][ B   ]\n"
@@ -171,7 +191,10 @@ void pocket265(void)
 		       "[ INC ][ DEC ][ SEL ][ GO  ]\n", screen);
 
 		usleep(1 * 1000);
-		core_nmi();
+		if (!nmi_dis) {
+			nmi_dis = 1;
+			core_nmi();
+		}
 	}
 }
 
