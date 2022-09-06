@@ -15,7 +15,7 @@ OBJ += main.o
 	$(CC) -c -o $@ $< $(CFLAGS) $(VERSION) $(DEBUG) -I.
 
 $(OUT): $(OBJ)
-	gcc -o $@ $^ $(LIBS)
+	gcc --static -o $@ $^ $(LIBS)
 
 install:
 	cp $(OUT) $(INSTALL_PATH)/$(OUT)
