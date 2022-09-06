@@ -2,7 +2,7 @@
 
 Handheld PC based on the original 6502 CPU that fits into a pocket.
 
-![computer](img/computer.jpg)
+<img src="img/computer.jpg" width="45%"> <img src="img/bottom.jpg" width="45%">
 
 ## Features
 
