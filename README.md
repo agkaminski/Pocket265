@@ -48,19 +48,16 @@ In the `sim/` directory is a script that starts the simulator with memory initia
 
 Simulator is started and after boot sequence main screen is presented in the terminal:
 
-> [MON 0800 >00]
+<pre>
+[MON 0800 >00]
 
-> [ F1  ][ F2  ][ F3  ][ F4  ]
-
-> [ C   ][ D   ][ E   ][ F   ]
-
-> [ 8   ][ 9   ][ A   ][ B   ]
-
-> [ 4   ][ 5   ][ 6   ][ 7   ]
-
-> [ 0   ][ 1   ][ 2   ][ 3   ]
-
-> [ INC ][ DEC ][ SEL ][ GO  ]
+[ F1  ][ F2  ][ F3  ][ F4  ]
+[ C   ][ D   ][ E   ][ F   ]
+[ 8   ][ 9   ][ A   ][ B   ]
+[ 4   ][ 5   ][ 6   ][ 7   ]
+[ 0   ][ 1   ][ 2   ][ 3   ]
+[ INC ][ DEC ][ SEL ][ GO  ]
+</pre>
 
 Key presses are redirected to the simulated Pocket265 computer. Key mappings:
 - 0-9, a-f: Input on numerical hex keyboard,
@@ -79,17 +76,17 @@ Key presses are redirected to the simulated Pocket265 computer. Key mappings:
 
 First, welcome splash-screen is displayed:
 
-> POCKET265
+> <pre>POCKET265</pre>
 
 After that version and copyright information is scrolled over and memory test is performed:
 
-> 6144 B FREE
+> <pre>6144 B FREE</pre>
 
 By default 6144 bytes are free (2 KB is reseved for ROM), memory can be expanded using expansion slot.
 
 After 1 seconds computer proceeds to the main mode of operation:
 
-> MON 0800 >00
+> <pre>MON 0800 >00</pre>
 
 ## Memory edit
 
@@ -99,15 +96,15 @@ Example - entering `0xBA` at the current address:
 
 We start with our memory cell selected (in this case at the address `0x0800`):
 
-> MON 0800 >00
+> <pre>MON 0800 >00</pre>
 
 press `B` button to enter 0xB:
 
-> MON 0800 >0B
+> <pre>MON 0800 >0B</pre>
 
 then press `A` button to finish entering the byte:
 
-> MON 0800 >BA
+> <pre>MON 0800 >BA</pre>
 
 Done!
 
@@ -123,7 +120,7 @@ To select next/prev memory cell press `INC`/`DEC` button. The address will be in
 
 Big leaps through memory space are not very convenient using incrementation/decrementation. You can change the address very similar to changing memory value. To enter address edit mode pres `SEL` key. `<` will point to the address to confirm mode selection:
 
-> MON 0800< 00
+> <pre>MON 0800< 00</pre>
 
 In this mode address can be modified the same way memory value is performed - when key `0-F` is pressed the old address is shifted 4 bits to the left and new value is inserted at the youngest position.
 
@@ -137,7 +134,7 @@ To start user program provides its entry point in the address field and press `G
 
 `F1` key toggles auto-increment mode. When on it's indicated by `+` sign next to the address:
 
-> MON 0800+>00
+> <pre>MON 0800+>00</pre>
 
 When this mode is active when the whole byte is entered (i.e. two key `0-F` presses) address will be incremented automatically. This mode is very useful for binary program listing input, as no additional key press between bytes is needed.
 
