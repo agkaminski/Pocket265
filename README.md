@@ -32,6 +32,47 @@ Handheld PC based on the original 6502 CPU that fits into a pocket.
 | 0xCC00 | 0xCFFF | 4 bit GPIO  |
 | 0xE000 | 0xFFFF | ROM         |
 
+# Simulator
+
+Pocket265 simulator is there to make FW developement easier, but it can be also used to get a fell for the computer usage. It is based on AK6502 (github.com/agkaminski/AK6502) Verilog core simulator and it is provided in `sim/` directory.
+
+To run the simulation first build the FW:
+> (cd fw && make all)
+
+then build the simulator:
+> (cd sim && make all)
+
+In the `sim/` directory is a script that starts the simulator with memory initialized with Pocket265 - `runsim.sh`. To run the simulator:
+> cd sim
+> ./runsim.sh
+
+Simulator is started and after boot sequence main screen is presented in the terminal:
+
+> [MON 0800 >00]
+
+> [ F1  ][ F2  ][ F3  ][ F4  ]
+
+> [ C   ][ D   ][ E   ][ F   ]
+
+> [ 8   ][ 9   ][ A   ][ B   ]
+
+> [ 4   ][ 5   ][ 6   ][ 7   ]
+
+> [ 0   ][ 1   ][ 2   ][ 3   ]
+
+> [ INC ][ DEC ][ SEL ][ GO  ]
+
+Key presses are redirected to the simulated Pocket265 computer. Key mappings:
+- 0-9, a-f: Input on numerical hex keyboard,
+- h: INC key,
+- j: DEC key,
+- k: SEL key,
+- l: GO key,
+- u: F1 key,
+- i: F2 key,
+- o: F3 key,
+- p: F4 key.
+
 # Monitor how-to
 
 ## Startup
