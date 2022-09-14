@@ -103,11 +103,6 @@ _g_nmi_disable: .res 1,$00
                 PHA
                 CLD
 
-                TSX
-                LDA $0104, X
-                AND #$10
-                BNE _break
-
                 JSR scan_keyb
                 JSR handle_timer
 
@@ -127,6 +122,12 @@ _g_nmi_disable: .res 1,$00
                 JSR _nmi_clr
 
 @disable:       STX _g_nmi_disable
+
+                TSX
+                LDA $0104, X
+                AND #$10
+                BNE _break
+
                 PLA
                 TAY
                 PLA
@@ -147,11 +148,6 @@ _g_nmi_disable: .res 1,$00
                 PHA
                 CLD
 
-                TSX
-                LDA $0104, X
-                AND #$10
-                BNE _break
-
                 LDA _g_irq_valid
                 BEQ @end
 
@@ -161,7 +157,12 @@ _g_nmi_disable: .res 1,$00
                 PHA
                 JMP (_g_irq_callback)
 
-@end:           PLA
+@end:           TSX
+                LDA $0104, X
+                AND #$10
+                BNE _break
+
+                PLA
                 TAY
                 PLA
                 TAX
