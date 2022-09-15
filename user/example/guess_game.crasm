@@ -57,11 +57,11 @@ end             LDA #'\n'
                 svc_getKey
                 RTS
 
-startstr        ASC "\nGuess?"
+startstr        ASC "Guess?"
                 DB 0
-toobigstr       ASC "\nless  "
+toobigstr       ASC "less"
                 DB 0
-toosmallstr     ASC "\nmore  "
+toosmallstr     ASC "more"
                 DB 0
 winstr          ASC " tries"
                 DB 0
