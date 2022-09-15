@@ -8,6 +8,6 @@
 #define SCREEN_LENGTH 12
 #define SCREEN_COL    1
 
-int dl1414_puts(const char *str);
+void dl1414_puts(const char *str);
 
 #endif

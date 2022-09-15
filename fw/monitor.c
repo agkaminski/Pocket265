@@ -2,7 +2,6 @@
  * A.K. 2022
  */
 
-#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <6502.h>
@@ -14,6 +13,7 @@
 #include "i2c.h"
 #include "interrupt.h"
 #include "uart.h"
+#include "print.h"
 
 typedef enum { mode_data = 0, mode_addr } edit_mode_t;
 
@@ -33,22 +33,26 @@ static void monitor_do(unsigned char input, struct mon_ctx *monctx);
 
 void monitor_getu16param(const char *prompt, uint16_t *param, char type)
 {
-	unsigned char key, done = 0;
-	const char *fmt = "\r%6s: %04x";
+	unsigned char key, done = 0, pos;
 	unsigned char num[6] = { 0 }, i;
 
-	if (type)
-		fmt = "\r%6s:%5u";
-
 	while (!done) {
+		g_buff[0] = '\r';
+		pos = print_string(g_buff + 1, prompt, 6, 6) + 1;
+		g_buff[pos++] = ':';
+
 		if (type) {
 			for (i = 5, *param = 0; i > 0; --i) {
 				*param *= 10;
 				*param += num[i];
 			}
-		}
 
-		sprintf(g_buff, fmt, prompt, *param);
+			print_u16(g_buff + pos, *param, 5);
+		}
+		else {
+			g_buff[pos++] = ' ';
+			print_x16(g_buff + pos, *param);
+		}
 		dl1414_puts(g_buff);
 
 		key = keyboard_get();
@@ -92,6 +96,15 @@ void monitor_getu16param(const char *prompt, uint16_t *param, char type)
 	}
 }
 
+static void monitor_printResult(const char *str, uint16_t count)
+{
+	unsigned char pos;
+	pos = print_string(g_buff, str, 0, 7);
+	pos += print_u16(g_buff + pos, count, 0);
+	print_string(g_buff + pos, "B", 0, 255);
+	dl1414_puts(g_buff);
+}
+
 static void monitor_memcpy(void)
 {
 	uint16_t source = 0, len = 0;
@@ -103,8 +116,7 @@ static void monitor_memcpy(void)
 
 	memcpy((void *)g_address, (void *)source, len);
 
-	sprintf(g_buff, "\nCopied %u", len);
-	dl1414_puts(g_buff);
+	monitor_printResult("\nDone ", len);
 
 	keyboard_get();
 }
@@ -119,13 +131,10 @@ static void monitor_i2c_save(void)
 
 	ret = i2c_write(dest, (void *)g_address, len);
 
-	if (ret < 0) {
+	if (ret < 0)
 		dl1414_puts("\nI2C error");
-	}
-	else {
-		sprintf(g_buff, "\nWrote %dB", ret);
-		dl1414_puts(g_buff);
-	}
+	else
+		monitor_printResult("\nWrote ", len);
 
 	keyboard_get();
 }
@@ -140,13 +149,10 @@ static void monitor_i2c_load(void)
 
 	ret = i2c_read(source, (void *)g_address, len);
 
-	if (ret < 0) {
+	if (ret < 0)
 		dl1414_puts("\nI2C error");
-	}
-	else {
-		sprintf(g_buff, "\nRead %dB", ret);
-		dl1414_puts(g_buff);
-	}
+	else
+		monitor_printResult("\nRead ", len);
 
 	keyboard_get();
 }
@@ -214,14 +220,14 @@ static void monitor_uart(void)
 
 static void monitor_version(void)
 {
-	sprintf(g_buff, "\n%.12s", VERSION);
+	g_buff[0] = '\n';
+	print_string(g_buff + 1, VERSION, 0, 12);
 	dl1414_puts(g_buff);
 	keyboard_get();
 }
 
 static void monitor_memclr(void)
 {
-	dl1414_puts("\nIn progress");
 	memset((void *)USR_MEM_START, 0, user_memsz);
 	dl1414_puts("\nMemclr done");
 	keyboard_get();
@@ -230,23 +236,21 @@ static void monitor_memclr(void)
 static void monitor_menu(void)
 {
 	unsigned char selection = 0;
-	char g_buff[SCREEN_LENGTH + 2];
 	unsigned char key, exit = 0;
 	static const struct {
 		const char *name;
 		void (*f)(void);
 	} items[] = {
-		{ "Copy mem", monitor_memcpy },
-		{ "I2C save", monitor_i2c_save },
-		{ "I2C load", monitor_i2c_load },
-		{ "UART com", monitor_uart },
-		{ "Version",  monitor_version },
-		{ "Clr mem",  monitor_memclr }
+		{ "\n 1:Copy mem", monitor_memcpy },
+		{ "\n 2:I2C save", monitor_i2c_save },
+		{ "\n 3:I2C load", monitor_i2c_load },
+		{ "\n 4:UART com", monitor_uart },
+		{ "\n 5:Version",  monitor_version },
+		{ "\n 6:Clr mem",  monitor_memclr }
 	};
 
 	while (!exit) {
-		sprintf(g_buff, "\n%2d:%s", selection + 1, items[selection]);
-		dl1414_puts(g_buff);
+		dl1414_puts(items[selection].name);
 
 		key = keyboard_get();
 
@@ -361,7 +365,7 @@ static void monitor_do(unsigned char input, struct mon_ctx *monctx)
 
 void monitor_run(void)
 {
-	unsigned char key_pressed = 0, key, refresh = 1;
+	unsigned char key_pressed = 0, key, refresh = 1, pos;
 	struct mon_ctx ctx;
 	uint8_t ndata;
 	static const char *modeLUT[] = { " >", "< ", "+>", "+<" };
@@ -377,8 +381,11 @@ void monitor_run(void)
 
 		if (refresh || ndata != g_dataPrev) {
 			g_dataPrev = ndata;
-			sprintf(g_buff, "\rMON %04x%s%02x", g_address,
-				modeLUT[ctx.autoinc ? ctx.mode + 2 : ctx.mode], ndata);
+
+			pos = print_string(g_buff, "\rMON ", 0, 255);
+			pos += print_x16(g_buff + pos, g_address);
+			pos += print_string(g_buff + pos, modeLUT[ctx.autoinc ? ctx.mode + 2 : ctx.mode], 2, 2);
+			print_x8(g_buff + pos, ndata);
 			dl1414_puts(g_buff);
 			refresh = 0;
 		}

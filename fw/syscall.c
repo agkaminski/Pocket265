@@ -3,7 +3,6 @@
  */
 
 #include <stdint.h>
-#include <stdio.h>
 #include <pocket265.h>
 
 #include "timer.h"
@@ -11,6 +10,7 @@
 #include "dl1414.h"
 #include "interrupt.h"
 #include "monitor.h"
+#include "print.h"
 
 struct brk_param {
 	uint8_t a;
@@ -50,7 +50,7 @@ void brk_puts(void)
 
 void brk_putb(void)
 {
-	sprintf(g_buff, "%02x", g_brk_param.a);
+	print_x8(g_buff, g_brk_param.a);
 	dl1414_puts(g_buff);
 }
 
@@ -58,7 +58,7 @@ void brk_printxU16(void)
 {
 	uint16_t param = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
 
-	sprintf(g_buff, "%04x", param);
+	print_x16(g_buff, param);
 	dl1414_puts(g_buff);
 }
 
@@ -66,7 +66,7 @@ void brk_printdU16(void)
 {
 	uint16_t param = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
 
-	sprintf(g_buff, "%u", param);
+	print_u16(g_buff, param, 0);
 	dl1414_puts(g_buff);
 }
 
@@ -74,7 +74,7 @@ void brk_printdS16(void)
 {
 	uint16_t param = (uint16_t)g_brk_param.x | ((uint16_t)g_brk_param.y << 8);
 
-	sprintf(g_buff, "%d", (int16_t)param); /* integer overflow, I don't care */
+	print_s16(g_buff, (int16_t)param, 0);
 	dl1414_puts(g_buff);
 }
 

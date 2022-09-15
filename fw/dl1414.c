@@ -8,7 +8,7 @@
 
 #include "dl1414.h"
 
-int dl1414_puts(const char *str)
+void dl1414_puts(const char *str)
 {
 	static int pos = 0;
 	volatile unsigned char *ptr = (void *)SCREEN_BASE;
@@ -43,6 +43,4 @@ int dl1414_puts(const char *str)
 
 	for (i = 0; i < sizeof(buff); ++i)
 		ptr[SCREEN_LENGTH - 1 - i] = buff[i];
-
-	return i;
 }

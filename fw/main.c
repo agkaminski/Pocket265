@@ -3,7 +3,6 @@
  */
 
 #include <stdint.h>
-#include <stdio.h>
 #include <pocket265.h>
 
 #include "interrupt.h"
@@ -12,6 +11,7 @@
 #include "timer.h"
 #include "memtest.h"
 #include "gpio.h"
+#include "print.h"
 
 uint16_t user_memsz;
 
@@ -19,7 +19,7 @@ int main(void)
 {
 	static const char copyright[] = "version " VERSION " A.K.    2022";
 	char buff[SCREEN_LENGTH + 2];
-	unsigned char i;
+	unsigned char i, pos;
 
 	gpio_init();
 
@@ -41,7 +41,9 @@ int main(void)
 	memory_test(&user_memsz);
 	user_memsz -= USR_MEM_START;
 
-	sprintf(buff, "\n%5d B free", user_memsz);
+	buff[0] = '\n';
+	pos = print_u16(buff + 1, user_memsz, 5) + 1;
+	print_string(buff + pos, " B free", 0, 255);
 	dl1414_puts(buff);
 	timer_wait_sec(1);
 
