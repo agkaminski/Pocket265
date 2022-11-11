@@ -16,10 +16,10 @@ int main(void)
 	/* End loop on 16-bit wrap-around */
 	while (candidate >= 3) {
 		prime = 1;
-		limit = (candidate >> 1) | 1;
+		limit = candidate >> 1;
 
 		/* Exclude 2, we consider only odd numbers */
-		for (i = 3; i < limit; i += 2) {
+		for (i = 3; i <= limit; i += 2) {
 			if (candidate % i == 0) {
 				prime = 0;
 				break;
