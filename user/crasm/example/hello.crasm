@@ -9,8 +9,6 @@ DUMMY
 
 ; Zero page variables here
 
-screen_ptr      ds 2
-
 CODE
 * = 0x800
 
