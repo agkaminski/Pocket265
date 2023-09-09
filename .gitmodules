@@ -1,0 +1,3 @@
+[submodule "simak65"]
+	path = simak65
+	url = https://github.com/agkaminski/simak65

@@ -34,9 +34,14 @@ Handheld PC based on the original 6502 CPU that fits into a pocket.
 
 # Simulator
 
-Pocket265 simulator is there to make FW developement easier, but it can be also used to get a feel for the computer usage. I2C memory and UART are not simulated. It is based on AK6502 (github.com/agkaminski/AK6502) Verilog core simulator and it is provided in `sim/` directory.
+Pocket265 simulator is there to make FW developement easier, but it can be also used to get a feel for the computer usage. I2C memory and UART are not simulated. It uses [simak65](https://github.com/agkaminski/simak65) simulator code.
 
-To run the simulation first build the FW:
+To run the simulation first build and install [simak65](https://github.com/agkaminski/simak65):
+<pre>
+$ (git submodule update --init && cd simak65 && make all && sudo make install)
+</pre>
+
+then build the FW:
 <pre>
 $ (cd fw && make all)
 </pre>

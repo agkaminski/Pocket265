@@ -1,30 +1,21 @@
-CC = gcc
-CFLAGS = -Wall -Werror -O2 -ansi -std=gnu99
-LIBS = -lpthread
-DEBUG = -DNDEBUG
-VERSION = -DVERSION=\"0.1.0\"
-INSTALL_PATH = /usr/bin/
+CC := gcc
+CFLAGS := -g -Wall -Werror -Wextra -Wno-type-limits -O2 -ansi -std=gnu99
+DEBUG := -DNDEBUG
 
-OUT = simak65
-OBJ =  core/addrmode.o core/alu.o core/core.o core/decoder.o core/exec.o
-OBJ += bus/bus.o bus/memory.o
-OBJ += parser/binary.o parser/ihex.o parser/srec.o parser/parser.o
-OBJ += main.o
+OUT = pocket265-sim
+OBJ = pocket265.o
+LIB = simak65
 
 %.o: %.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(VERSION) $(DEBUG) -I.
+	$(CC) $(CFLAGS) $(DEBUG) -I. -c -o $@ $<
 
 $(OUT): $(OBJ)
-	gcc --static -o $@ $^ $(LIBS)
+	$(CC) -o $@ $^ -l $(LIB)
 
-install:
-	cp $(OUT) $(INSTALL_PATH)/$(OUT)
+all: $(OUT)
 
 clean:
 	rm -f *.o $(OUT)
-	rm -f core/*.o
-	rm -f bus/*.o
-	rm -f parser/*.o
 
 .PHONY: clean
 .PHONY: install
