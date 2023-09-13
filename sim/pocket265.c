@@ -1,3 +1,7 @@
+/* Pocket265 SBC simulator
+ * Copyright A.K. 2023
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
