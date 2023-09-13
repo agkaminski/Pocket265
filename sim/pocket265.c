@@ -10,6 +10,7 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
 #include <simak65.h>
 
 #define RAM_START 0x0000u
@@ -27,7 +28,8 @@
 #define NMI_ACK_ADDR  0xc800u
 #define GPIO_ADDR     0xcc00u
 
-static uint8_t g_ram[RAM_SIZE];
+static uint8_t *g_ram;
+static size_t g_ramsz = RAM_SIZE;
 static uint8_t g_rom[ROM_SIZE];
 
 static uint8_t g_gpio_out;
@@ -94,7 +96,7 @@ static int pocket265_is_rom_wp(void)
 
 static uint8_t pocket265_read(uint16_t addr)
 {
-	if (addr >= RAM_START && addr < (RAM_START + RAM_SIZE))
+	if (addr >= RAM_START && addr < (RAM_START + g_ramsz))
 		return g_ram[addr - RAM_START];
 	else if (addr >= ROM_START && addr < (ROM_START + ROM_SIZE))
 		return g_rom[addr - ROM_START];
@@ -106,7 +108,7 @@ static uint8_t pocket265_read(uint16_t addr)
 
 static void pocket265_write(uint16_t addr, uint8_t byte)
 {
-	if (addr >= RAM_START && addr < (RAM_START + RAM_SIZE))
+	if (addr >= RAM_START && addr < (RAM_START + g_ramsz))
 		g_ram[addr - RAM_START] = byte;
 	else if (addr >= ROM_START && addr < (ROM_START + ROM_SIZE) && !pocket265_is_rom_wp())
 		g_rom[addr - ROM_START] = byte;
@@ -182,7 +184,7 @@ static useconds_t gettime_us(void)
 
 static void usage(const char *p)
 {
-	printf("usage: %s -r <path to firmware binary> [-f <cpu frequency in Hz 1-20000000>]\n", p);
+	printf("usage: %s -c <path to firmware binary> [-r <RAM size in bytes> ] [-f <cpu frequency in Hz 0-20000000>]\n", p);
 }
 
 static void sighandler(int n)
@@ -199,22 +201,30 @@ int main(int argc, char *argv[])
 	struct simak65_cpustate cpu;
 	const struct simak65_bus ops = { .read = pocket265_read, .write = pocket265_write };
 	unsigned int cycles = 0;
-	unsigned int frequency = 1000 * 1000;
-	useconds_t prev, now, prev_nmi = 0, prev_ui = 0, ns_per_cycle;
+	unsigned int frequency = 2 * 1000 * 1000;
+	useconds_t prev, now, prev_nmi = 0, prev_ui = 0, ns_per_cycle = 0;
 	int ns_error = 0;
 	static struct termios oldt, newt;
 
-	while ((c = getopt(argc, argv, "r:f:h")) != -1) {
+	while ((c = getopt(argc, argv, "c:f:r:h")) != -1) {
 		switch (c) {
-			case 'r':
+			case 'c':
 				if ((firmware = fopen(optarg, "r")) == NULL) {
 					fprintf(stderr, "can't open firmare file %s\n", optarg);
 					return 1;
 				}
 				break;
+			case 'r':
+				g_ramsz = strtoul(optarg, NULL, 0);
+				if (g_ramsz == 0) {
+					fprintf(stderr, "invalid RAM size\n");
+					return 1;
+				}
+				break;
 			case 'f':
+				errno = 0;
 				frequency = strtoul(optarg, NULL, 10);
-				if (frequency == 0 || frequency > 20 * 1000 * 1000) {
+				if (errno != 0 || frequency > 20 * 1000 * 1000) {
 					fprintf(stderr, "invalid frequency %u\n", frequency);
 					return 1;
 				}
@@ -228,7 +238,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	ns_per_cycle = (1000 * 1000 * 1000) / frequency;
+	if (frequency != 0)
+		ns_per_cycle = (1000 * 1000 * 1000) / frequency;
 
 	if (firmware == NULL) {
 		usage(argv[0]);
@@ -241,7 +252,13 @@ int main(int argc, char *argv[])
 	}
 
 	fclose(firmware);
-	
+
+	g_ram = malloc(g_ramsz);
+	if (g_ram == NULL) {
+		perror("failed to allocate RAM");
+		return 1;
+	}
+
 	signal(SIGINT, sighandler);
 
 	tcgetattr(STDIN_FILENO, &oldt);
@@ -283,18 +300,22 @@ int main(int argc, char *argv[])
 		}
 
 		/* Handle speed of the simulation */
-		ns_error += cycles * ns_per_cycle - ((now - prev) * 1000);
-		cycles = 0;
-		if (ns_error >= 1000) {
-			useconds_t to_sleep = ns_error / 1000;
-			ns_error -= to_sleep * 1000;
-			usleep(to_sleep);
+		if (frequency != 0) {
+			ns_error += cycles * ns_per_cycle - ((now - prev) * 1000);
+			cycles = 0;
+			if (ns_error >= 1000) {
+				useconds_t to_sleep = ns_error / 1000;
+				ns_error -= to_sleep * 1000;
+				usleep(to_sleep);
+			}
 		}
 
 		prev = now;
 	}
-	
+
 	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+	free(g_ram);
 
 	return 0;
 }
