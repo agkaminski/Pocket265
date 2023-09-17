@@ -38,7 +38,9 @@ Pocket265 simulator is there to make FW developement easier, but it can be also 
 
 ## Usage
 
-./pocket265-sim [OPTIONS]
+<pre>
+$ ./pocket265-sim [OPTIONS]
+</pre>
 
 where options are:
 - -c: path to the computer ROM (obligatory),
@@ -47,7 +49,7 @@ where options are:
 - -e: simulated EEPROM file (will be updated after end of the simulation, if write is performed!),
 - -h: usage.
 
-## Builing
+## Building
 
 To run the simulation first build and install [simak65](https://github.com/agkaminski/simak65):
 <pre>

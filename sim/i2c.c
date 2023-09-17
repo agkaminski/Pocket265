@@ -1,5 +1,5 @@
 /* 24xx I2C memory simulator
- * Copyright A.K. 2018, 2023
+ * Copyright A.K. 2023
  */
 
 #include <stdlib.h>
