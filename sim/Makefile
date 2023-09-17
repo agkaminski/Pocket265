@@ -3,7 +3,7 @@ CFLAGS := -g -Wall -Werror -Wextra -Wno-type-limits -O2 -ansi -std=gnu99
 DEBUG := -DNDEBUG
 
 OUT = pocket265-sim
-OBJ = pocket265.o
+OBJ = pocket265.o i2c.o
 LIB = simak65
 
 %.o: %.c

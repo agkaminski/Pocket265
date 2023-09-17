@@ -17,6 +17,8 @@
 #include <errno.h>
 #include <simak65.h>
 
+#include "i2c.h"
+
 #define RAM_START 0x0000u
 #define RAM_SIZE  0x2000u
 
@@ -32,16 +34,22 @@
 #define NMI_ACK_ADDR  0xc800u
 #define GPIO_ADDR     0xcc00u
 
+#define EEPROM_SIZE (32 * 1024)
+
+/* Memory */
 static uint8_t *g_ram;
 static size_t g_ramsz = RAM_SIZE;
 static uint8_t g_rom[ROM_SIZE];
 
-static uint8_t g_gpio_out;
+/* I/O */
 static char g_screen[12];
 static int g_screen_update = 1;
 static uint8_t g_key_row[6];
 static int g_nmi = 1;
 static volatile int g_exit = 0;
+static struct i2c_bus i2c_in;
+static struct i2c_bus i2c_out;
+static int g_romwp = 1;
 
 static void pocket265_nmi_ack(void)
 {
@@ -62,6 +70,8 @@ static uint8_t pocket265_keyread(uint16_t addr)
 
 static uint8_t pocket265_ioread(uint16_t addr)
 {
+	uint8_t gpio = 0;
+
 	switch (addr & PERIPH_ADDR_MASK) {
 		case KEYBOARD_ADDR:
 			return pocket265_keyread(addr);
@@ -69,7 +79,10 @@ static uint8_t pocket265_ioread(uint16_t addr)
 			pocket265_nmi_ack();
 			break;
 		case GPIO_ADDR:
-			return g_gpio_out & 0xf;
+			gpio |= !!(i2c_out.sda && i2c_in.sda) << 1; /* SDA */
+			gpio |= !!(i2c_out.scl && i2c_in.scl) << 2; /* SCL */
+			gpio |= !!g_romwp << 3;                     /* ROM_WP */
+			return gpio |= 0xf1;                        /* Unused */
 	}
 
 	return 0xff;
@@ -88,14 +101,11 @@ static void pocket265_iowrite(uint16_t addr, uint8_t byte)
 			pocket265_nmi_ack();
 			break;
 		case GPIO_ADDR:
-			g_gpio_out = byte & 0xf;
+			i2c_in.sda = !!(byte & (1 << 1));
+			i2c_in.scl = !!(byte & (1 << 2));
+			g_romwp = !!(byte & (1 << 3));
 			break;
 	}
-}
-
-static int pocket265_is_rom_wp(void)
-{
-	return (g_gpio_out & (1 << 3)) ? 1 : 0;
 }
 
 static uint8_t pocket265_read(uint16_t addr)
@@ -114,7 +124,7 @@ static void pocket265_write(uint16_t addr, uint8_t byte)
 {
 	if (addr >= RAM_START && addr < (RAM_START + g_ramsz))
 		g_ram[addr - RAM_START] = byte;
-	else if (addr >= ROM_START && addr < (ROM_START + ROM_SIZE) && !pocket265_is_rom_wp())
+	else if (addr >= ROM_START && addr < (ROM_START + ROM_SIZE) && !g_romwp)
 		g_rom[addr - ROM_START] = byte;
 	else if (addr >= PERIPH_ADDR_START && addr <= PERIPH_ADDR_END)
 		pocket265_iowrite(addr, byte);
@@ -188,20 +198,20 @@ static useconds_t gettime_us(void)
 
 static void usage(const char *p)
 {
-	printf("usage: %s -c <path to firmware binary> [-r <RAM size in bytes> ] [-f <cpu frequency in Hz 0-20000000>]\n", p);
+	printf("usage: %s -c <path to firmware binary> [-r <RAM size in bytes> ] [ -e <I2C EEPROM file> ] [-f <cpu frequency in Hz 0-20000000>]\n", p);
 }
 
 static void sighandler(int n)
 {
-    (void)n;
+	(void)n;
 
-    g_exit = 1;
+	g_exit = 1;
 }
 
 int main(int argc, char *argv[])
 {
 	int c;
-	FILE *firmware = NULL;
+	FILE *firmware = NULL, *eeprom = NULL;
 	struct simak65_cpustate cpu;
 	const struct simak65_bus ops = { .read = pocket265_read, .write = pocket265_write };
 	unsigned int cycles = 0;
@@ -209,8 +219,9 @@ int main(int argc, char *argv[])
 	useconds_t prev, now, prev_nmi = 0, prev_ui = 0, ns_per_cycle = 0;
 	int ns_error = 0;
 	static struct termios oldt, newt;
+	struct i2c_ctx i2c;
 
-	while ((c = getopt(argc, argv, "c:f:r:h")) != -1) {
+	while ((c = getopt(argc, argv, "c:f:r:e:h")) != -1) {
 		switch (c) {
 			case 'c':
 				if ((firmware = fopen(optarg, "r")) == NULL) {
@@ -230,6 +241,12 @@ int main(int argc, char *argv[])
 				frequency = strtoul(optarg, NULL, 10);
 				if (errno != 0 || frequency > 20 * 1000 * 1000) {
 					fprintf(stderr, "invalid frequency %u\n", frequency);
+					return 1;
+				}
+				break;
+			case 'e':
+				if ((eeprom = fopen(optarg, "r+")) == NULL) {
+					fprintf(stderr, "can't open EEPROM file %s\n", optarg);
 					return 1;
 				}
 				break;
@@ -263,6 +280,14 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (i2c_init(&i2c, EEPROM_SIZE, 0x50) < 0) {
+		fprintf(stderr, "i2c init failed");
+		return 1;
+	}
+
+	if (eeprom != NULL)
+		(void)!fread(i2c.mem, 1, i2c.memsz, eeprom);
+
 	signal(SIGINT, sighandler);
 
 	tcgetattr(STDIN_FILENO, &oldt);
@@ -280,6 +305,7 @@ int main(int argc, char *argv[])
 
 	while (!g_exit) {
 		simak65_step(&cpu, &cycles);
+		i2c_step(&i2c, &i2c_in, &i2c_out);
 
 		now = gettime_us();
 
@@ -319,6 +345,14 @@ int main(int argc, char *argv[])
 
 	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 
+	if (eeprom != NULL) {
+		rewind(eeprom);
+		(void)!fwrite(i2c.mem, 1, i2c.memsz, eeprom);
+		fflush(eeprom);
+		fclose(eeprom);
+	}
+
+	i2c_destroy(&i2c);
 	free(g_ram);
 
 	return 0;

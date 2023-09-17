@@ -34,7 +34,20 @@ Handheld PC based on the original 6502 CPU that fits into a pocket.
 
 # Simulator
 
-Pocket265 simulator is there to make FW developement easier, but it can be also used to get a feel for the computer usage. I2C memory and UART are not simulated. It uses [simak65](https://github.com/agkaminski/simak65) simulator code.
+Pocket265 simulator is there to make FW developement easier, but it can be also used to get a feel for the computer usage. Only UART is not simulated. It uses [simak65](https://github.com/agkaminski/simak65) simulator code.
+
+## Usage
+
+./pocket265-sim [OPTIONS]
+
+where options are:
+- -c: path to the computer ROM (obligatory),
+- -f: simulated CPU frequency, from 0 (max speed, no throttling) to 20000000 (Hz),
+- -r: simulated RAM size in bytes,
+- -e: simulated EEPROM file (will be updated after end of the simulation, if write is performed!),
+- -h: usage.
+
+## Builing
 
 To run the simulation first build and install [simak65](https://github.com/agkaminski/simak65):
 <pre>
@@ -50,6 +63,8 @@ then build the simulator:
 <pre>
 $ (cd sim && make all)
 </pre>
+
+## Running the simulation
 
 In the `sim/` directory is a script that starts the simulator with memory initialized with Pocket265 firmware - `runsim.sh`. To run the simulator:
 <pre>
